@@ -24,7 +24,7 @@ An assistant that answers questions about an unfamiliar **Python** repository: c
 
 | Area | Decision |
 | --- | --- |
-| Backend | Python 3.12 + FastAPI; events streamed to the UI with Server-Sent Events |
+| Backend | Python 3.13 + FastAPI; events streamed to the UI with Server-Sent Events |
 | Frontend | React + TypeScript (Vite), react-markdown, Mermaid |
 | Parsing | Python `ast`; Python repositories only |
 | Graph | NetworkX, saved to a file; nodes: file/module, class, function/method, route, doc section; edges: CONTAINS, IMPORTS, INHERITS, HANDLES, MENTIONS, CALLS |
@@ -60,7 +60,7 @@ The full plan was sized at roughly two weeks, so the reduced scope applies **fro
 
 | Day | Goal by end of day |
 | --- | --- |
-| 1 | Phases 1–3: repo, skeletons, model chosen (30-minute test), graph built for the demo repo, four core tools working with tests |
+| 1 | Phases 1–3: repo, skeletons, model chosen (one-hour test), graph built for the demo repo, four core tools working with tests |
 | 2 | Phases 4–5: agent loop answering multi-step questions from the command line; one capability gap producing a validated tool that runs in Docker |
 | 3 | Phases 6–7: single-screen UI with Markdown, Mermaid and activity panel; 8-question evaluation; README with setup, assumptions and limitations |
 
@@ -92,7 +92,7 @@ This log is used to write the README and to explain the work to reviewers, so re
 4. **Agent loop:** structured actions, evidence store, step limit, event streaming; multi-step questions work from the command line.
 5. **Dynamic tools:** gap handling, templated generation, static checks, Docker runner with JSON `ctx`, test run, registration, audit files.
 6. **UI:** repository bar, chat with Markdown/Mermaid (show source if a diagram fails), activity panel.
-7. **Evaluation and README:** 12-question set, results, setup, assumptions and limitations in the README.
+7. **Evaluation and README:** 8-question set, results, setup, assumptions and limitations in the README.
 
 Given the 3-day budget, the reduced scope in "Time budget" already applies. Never cut an assignment requirement to save time; cut polish instead.
 
