@@ -139,7 +139,8 @@ eval/             # evaluation questions and results
 
 Fill these in during phase 1 and keep them current.
 
-- Backend: `TODO`
+- Backend setup (once): `cd backend; py -3.13 -m venv .venv; .venv/Scripts/python -m pip install -r requirements-dev.txt`
+- Backend: `cd backend; .venv/Scripts/python -m uvicorn app.main:app --reload` (http://localhost:8000/api/health)
 - Frontend: `TODO`
-- Tests: `TODO`
+- Tests: `cd backend; .venv/Scripts/python -m pytest`
 - Build runner image: `TODO`
