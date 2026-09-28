@@ -145,4 +145,5 @@ Fill these in during phase 1 and keep them current.
 - Frontend: `cd frontend; npm run dev` (http://localhost:5173, proxies `/api` to the backend on port 8000)
 - Frontend checks: `cd frontend; npm run build; npm run lint`
 - Tests: `cd backend; .venv/Scripts/python -m pytest`
+- Build a code graph: `cd backend; .venv/Scripts/python -m app.graph.build <git-url-or-path>` (saved under `workspace/graphs/`)
 - Build runner image: `TODO`
