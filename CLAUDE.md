@@ -141,6 +141,8 @@ Fill these in during phase 1 and keep them current.
 
 - Backend setup (once): `cd backend; py -3.13 -m venv .venv; .venv/Scripts/python -m pip install -r requirements-dev.txt`
 - Backend: `cd backend; .venv/Scripts/python -m uvicorn app.main:app --reload` (http://localhost:8000/api/health)
-- Frontend: `TODO`
+- Frontend setup (once): `cd frontend; npm install`
+- Frontend: `cd frontend; npm run dev` (http://localhost:5173, proxies `/api` to the backend on port 8000)
+- Frontend checks: `cd frontend; npm run build; npm run lint`
 - Tests: `cd backend; .venv/Scripts/python -m pytest`
 - Build runner image: `TODO`
