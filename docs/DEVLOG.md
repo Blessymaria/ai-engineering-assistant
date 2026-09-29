@@ -77,3 +77,28 @@
 - Decisions: the Breeze indexer (`breezeai-cog` via `uvx`) cannot build natively on Windows: its Groovy tree-sitter dependency needs the MSVC build tools (admin). `wsl --install` failed on the corporate network (certificate error fetching the distro list), so Ubuntu 24.04 was downloaded from cloud-images.ubuntu.com and added with `wsl --import` (no admin). Inside it: `uv` and `build-essential`. Automatic upload with an API key.
 - Verified: indexer parsed 38 files, 69 functions, 15 classes; `Code_Graph_Search` in Breeze finds `backend/app/tools/search.py::search_code` (code ontology 2848).
 - Issues / next: the 3 TypeScript files were skipped: the TS parser downloads from GitHub inside WSL and fails the corporate certificate check (`UnknownIssuer`). The backend (the bulk of the code) is indexed; frontend indexing can wait for phase 6. The upload's status poll returns HTTP 400 "projectUuid query param is required" although the upload lands (Breeze-side bug; same error from the repository-list MCP tool). Re-index at milestones with `wsl -d Ubuntu -u root -- bash "/mnt/c/Users/BlessyMariaMathew/Desktop/Project 1/breeze-onboard.sh"`.
+
+## 2026-09-29 — Phase 4: agent loop
+- Changes: `backend/app/llm/{base,ollama}.py`, `backend/app/agent/{actions,evidence,loop,prompts,__main__}.py`, `backend/app/api/routes.py` (`POST /api/ask`, SSE), `backend/app/main.py`, `backend/app/graph/store.py` (`latest_graph`), `backend/tests/test_agent.py`
+- Decisions:
+  - Provider interface + Ollama provider (stdlib HTTP, no new dependency); every call sets temperature 0, `think: false` and `num_predict` 1024.
+  - Each reply is parsed into exactly one action: ToolCall, CapabilityGap (reserved `report_capability_gap` schema, never executed), FinalAnswer or Invalid. Only the first of several tool calls runs; tool calls written as JSON text are accepted.
+  - Evidence store keeps full results (`E1`, `E2`, …); the model sees compact text, and results older than the last 3 shrink to a one-line summary. Graph results state both "defined at" and "call at file:line".
+  - 12 tool rounds, then a forced answer with no tools. Tool errors and invalid actions go back to the model and count toward the limit. An answer with no evidence and no reported gap is sent back once ("look at the code first").
+  - Phase 4 gap handling: the gap is recorded and the model is told no tool can be created yet (phase 5 replaces this).
+  - Citation check validates that cited `E<n>` ids exist (not that they support the claim).
+- Verified: `pytest` 98 passed, 1 skipped (loop tested with a scripted fake model). Real runs with gemma4:e4b on the demo repo, checked by hand against the source:
+
+  | Question | Rounds | Time | Citations | Result |
+  | --- | --- | --- | --- | --- |
+  | What happens when POST /articles is called? (first prompt) | 7 | 349 s | 5/5 | Correct route → repository → SQL flow, cited lines 44/45/55/56/58 verified; skipped the two service calls, no Mermaid, did not flag the ambiguous repo call |
+  | Same question (revised prompt) | 5 | 216 s | 4/4 | Every step in order incl. services and the 400 check; ambiguous repo call flagged; still no Mermaid |
+  | Which modules depend on app.db.repositories.articles? (first) | 5 | 182 s | 2/2 | Incomplete: 2 of 6 importers |
+  | Same (revised prompt) | 6 | 349 s | 3/3 | 3 of 6 importers (misses `app.api.dependencies.articles` and 2 test modules); vague hedging on one module |
+  | Where is the JWT token created, and who uses it? (first) | 4 | 192 s | 3/3 | Creation correct (`jwt.py:15/27/28`); call-site lines wrong (cited caller definitions, e.g. `authentication.py:23` for a call at line 41); missed token decoding in `dependencies/authentication.py:84` |
+
+- Issues / next:
+  - Almost all time is the model (7-35 s per tool step, 95-180 s for the final written answer on CPU); tools take < 0.3 s.
+  - The wrong call-site lines came from the compact format (function start line shown first); fixed by printing "defined at … ; call at …". Not yet re-verified on the JWT question.
+  - gemma4:e4b does not produce Mermaid despite the prompt, and does not always list every item a tool returned. Options for phase 6/7: build the Mermaid diagram in code from the visited graph nodes instead of asking the model; keep prompts short.
+  - Next: phase 5, dynamic tool creation (git history gap) and the container runner.

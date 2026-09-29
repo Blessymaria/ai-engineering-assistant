@@ -91,6 +91,13 @@ def test_compact_graph_result_is_short_and_keeps_status(repo):
     assert "[ambiguous] shop.db.repo.OrderRepo.save" in out
     assert "[unresolved] unresolved:notifier" in out
     assert "Note:" in out
+    # callees: the call site is in the start node's file
+    assert "shop.services.orders.validate defined at shop/services/orders.py:7; call at shop/services/orders.py:14" in out
+
+
+def test_compact_callers_give_call_site_in_the_callers_file(repo):
+    out = compact("query_graph", run_tool(repo, "query_graph", {"node": "create_order", "relation": "callers"}))
+    assert "shop.api.routes.post_order defined at shop/api/routes.py:12; call at shop/api/routes.py:14" in out
 
 
 def test_compact_read_file_caps_lines(repo, monkeypatch):

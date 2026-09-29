@@ -77,8 +77,13 @@ def compact(tool: str, result: dict) -> str:
         for r in result["results"][:MAX_GRAPH_ITEMS]:
             status = f"[{r['status']}] " if "status" in r else ""
             via = f" via {r['via']}" if r.get("via") else ""
-            at = f" called at line {r['call_line']}" if r.get("call_line") else ""
-            loc = f" ({_loc(r)})" if r.get("path") else ""
+            loc = f" defined at {_loc(r)}" if r.get("path") else ""
+            at = ""
+            if r.get("call_line"):
+                # The call site is in the caller's file: the listed node for callers, the start node for callees.
+                caller_path = r.get("path") if result["relation"] == "callers" else (
+                    node.get("path") if r["depth"] == 1 else None)
+                at = f"; call at {caller_path}:{r['call_line']}" if caller_path else f"; call at line {r['call_line']}"
             lines.append(f"- {status}{r['id']}{loc}{at}{via}")
         if not result["results"]:
             lines.append("- (none)")
