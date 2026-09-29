@@ -56,10 +56,15 @@ Example input from the agent: {example}
 - ctx.list_nodes(kind) -> [{{"id", "name", "path", "line", "end"}}, ...]   kind: module | class | function | route
 - ctx.git_log(path, limit=10) -> [{{"commit", "author", "email", "date", "subject"}}, ...]   newest first
 - ctx.git_blame(path, start, end) -> [{{"line", "commit", "author", "date", "summary", "text"}}, ...]
+  one entry per line, in line order (not date order); ISO dates sort correctly as strings
 There are no other ctx methods.
 
 Rules: only import {imports} (inside the body). Do not use open, eval, exec, getattr, os, sys, subprocess,
 or any name with double underscores. Keep the body under 25 lines. Read inputs from `args`.
+Do not catch exceptions: let errors propagate. Take the kind of input the agent has: if the example input
+is a function or class name, accept that name and find its file and lines with ctx.list_nodes or
+ctx.search_code (nodes have "path", "line" and "end"). example_input must use a name that exists in THIS
+repository, such as the agent's example.
 
 Example tool body (counts functions per file, input {{"limit": 5}}):
 {example_body}
@@ -178,6 +183,9 @@ class ToolFactory:
         if not isinstance(outcome.result, dict) or not outcome.result:
             return None, [f"run() must return a non-empty dict, got {type(outcome.result).__name__}: "
                           f"{json.dumps(outcome.result)[:200]}"], test
+        if "error" in outcome.result:
+            return None, [f"test run on example_input returned an error: {str(outcome.result['error'])[:300]}. "
+                          "Use an example_input that exists in this repository, and do not catch exceptions."], test
         tool = GeneratedTool(name, str(spec.get("description", "")).strip()[:200] or name, parameters, source,
                              example, outcome.result, self.runner, self.ctx)
         return tool, [], test

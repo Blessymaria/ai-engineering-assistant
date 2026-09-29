@@ -58,9 +58,12 @@ class ToolContext:
     def _repo_path(self, path: str) -> str:
         path = normalise_path(path)
         try:
-            resolve_inside(self.repo.root, path)
+            target = resolve_inside(self.repo.root, path)
         except PathError as err:
             raise ToolError(str(err)) from err
+        if not target.exists():
+            # git log on a missing path silently returns nothing; make it an error instead
+            raise ToolError(f"no such file or folder in the repository: {path}")
         return path
 
     def git_log(self, path: str, limit: int = 10) -> list[dict]:

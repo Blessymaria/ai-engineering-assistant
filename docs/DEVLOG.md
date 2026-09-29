@@ -102,3 +102,25 @@
   - The wrong call-site lines came from the compact format (function start line shown first); fixed by printing "defined at … ; call at …". Not yet re-verified on the JWT question.
   - gemma4:e4b does not produce Mermaid despite the prompt, and does not always list every item a tool returned. Options for phase 6/7: build the Mermaid diagram in code from the visited graph nodes instead of asking the model; keep prompts short.
   - Next: phase 5, dynamic tool creation (git history gap) and the container runner.
+
+## 2026-09-29 — Phase 5: dynamic tools in a locked-down container
+- Changes: `backend/app/runner/{docker,context}.py`, `backend/app/toolfactory/{static_check,factory}.py`, `backend/app/agent/{loop,prompts,__main__}.py`, `backend/app/api/routes.py`, `backend/app/llm/*` (`json_schema` option), `backend/app/ingest/loader.py` (full-history clones), `runner-image/`, `.gitattributes` (`*.sh` stay LF), `CLAUDE.md`, `backend/tests/test_toolfactory.py`
+- Decisions:
+  - **Containers without Docker Desktop:** Docker Engine installed with apt inside the WSL `Ubuntu` distro (no admin rights, no IT). Docker Hub is unreachable here (TLS handshake timeout), so the runner image `aiea-python-base:local` (Ubuntu 24.04 + Python 3.12, 277 MB) is built locally with debootstrap from the Ubuntu mirror (`runner-image/build-local.sh`); a Dockerfile is kept for machines with Hub access. The backend calls `wsl -d Ubuntu -u root -- docker` on Windows (`AIEA_DOCKER` overrides). Hard rule 5 is unchanged.
+  - Each run: `docker run --rm -i --network none --read-only --memory 256m --cpus 1 --pids-limit 64 --cap-drop ALL --security-opt no-new-privileges`, unique name, 10 s timer that `docker kill`s the container. Nothing is mounted; no secrets. The tool code and args go in as the first JSON line on stdin; a harness inside the container runs it (the backend never executes generated code). ~0.5 s container start-up via wsl.exe.
+  - ToolContext serves only: the four core tools (same validation), `list_nodes(kind)`, read-only `git_log(path, limit)` and `git_blame(path, start, end)` (paths confined to the repo root and required to exist).
+  - Factory: LLM fills the body of a fixed `run(args, ctx)` template, guided by one example tool and the real ctx method list, in JSON-schema mode (max 1500 tokens). Checks: name, input-schema normalisation (small models write `{"symbol": "string"}` shorthand), example input matches schema, static check (allowlisted imports; no eval/exec/compile/open/getattr/os/sys/subprocess/network modules; no dunder names), test run in the container, result must be a non-empty dict without an `error` key. One retry with the errors. Registered for the session only; `tool.py` + `validation.json` (every attempt) saved under `workspace/tools/`. At most 2 tools created per question.
+  - Clones now keep full history (the demo was shallow; `git fetch --unshallow`, 209 commits), otherwise git tools have nothing to report.
+- Verified: `pytest` 131 passed, 1 skipped. The Docker tests run against the real container: ctx round trip, code that deliberately bypasses the static check still gets "Network is unreachable" and "Read-only file system", an infinite loop is killed by the timeout. Real runs with gemma4:e4b, "When was the create_article function in the articles repository last changed, and by whom?" (truth from git: Nik, 2020-05-01, #35):
+
+  | Run | Tool created | Attempts / time | Answer | Verdict |
+  | --- | --- | --- | --- | --- |
+  | 1 | `get_git_history(path)` | 1 / 41 s | "history empty, cannot determine" | Honest but no answer: tool tested on a non-existent `src/main.py` (git log silently returned nothing), agent called it with `path='articles'` |
+  | 2 (after fixes below) | `get_function_git_info(target_name)` via `list_nodes` + `git_blame` of the function's lines | 1 / 88 s | Nik, 2019-11-18 | Author right, date wrong: returned the blame of the first line only |
+  | 3 (after blame doc fix) | `get_git_history_for_node(node_name, node_kind, file_path)` | 2 / 237 s | Nik, 2020-05-01 | Correct, but the tool blamed the whole file (46 KB result, model saw the first 3.5 KB); partly luck |
+
+  Fixes between runs: git helpers reject non-existent paths; a test result with an `error` key is a failure; the prompt asks to take the agent's kind of input (a function name), find its lines via ctx, not to catch exceptions, and documents that `git_blame` returns one entry per line in line order.
+- Issues / next:
+  - The pipeline itself works every time (gap -> generated -> static check -> container test -> registered -> used), but gemma4:e4b's tool logic varies run to run. Test runs still pass on made-up example inputs when the tool returns a "not found" status instead of an error (`some_function_name`). Possible later improvement: run the test on the agent's own example input.
+  - Tool creation takes 40-240 s on CPU; a question with a gap takes 2-6 minutes.
+  - Next: phase 6, the UI.

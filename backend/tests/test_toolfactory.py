@@ -142,6 +142,7 @@ def test_ctx_core_tools_and_list_nodes(repo):
 @pytest.mark.parametrize("method, args, message", [
     ("run_shell", {}, "no method"),
     ("git_log", {"path": "../../etc"}, "outside"),
+    ("git_log", {"path": "src/main.py"}, "no such file"),
     ("git_blame", {"path": "svc.py", "start": 5, "end": 2}, "start <= end"),
     ("list_nodes", {"kind": "secret"}, "must be one of"),
 ])
@@ -183,6 +184,12 @@ def test_factory_gives_up_after_retry(repo, tmp_path):
     assert "non-empty dict" in result.errors[0]
     assert not (result.audit_dir / "tool.py").exists()
     assert json.loads((result.audit_dir / "validation.json").read_text())["created"] is False
+
+
+def test_factory_treats_error_result_as_failure(repo, tmp_path):
+    runner = FakeRunner([RunResult(True, {"error": "no such file"}), RunResult(True, {"error": "still"})])
+    result = ToolFactory(FakeLLM([spec(), spec()]), runner, ToolContext(repo), tmp_path).create(GAP)
+    assert result.tool is None and "returned an error" in result.errors[0]
 
 
 @pytest.mark.parametrize("reply, message", [
