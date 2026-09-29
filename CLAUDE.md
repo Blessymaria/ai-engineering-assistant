@@ -33,7 +33,7 @@ An assistant that answers questions about an unfamiliar **Python** repository: c
 | Agent actions | Every LLM response is parsed into `ToolCall`, `CapabilityGap` (reserved `report_capability_gap` schema, never executed as a tool) or `FinalAnswer` |
 | Loop | Sequential tool calls, max 12 tool rounds; at the limit, answer with what is known and state what is unresolved |
 | Evidence | Full tool results stored backend-side as `E1`, `E2`, …; the LLM receives compact versions only |
-| LLM | Local ~4B model via Ollama (Qwen3 4B or Gemma 4 E4B; Gemma 2B fallback), behind a small provider interface. Ollama runs natively on the host; the backend reaches it at `http://localhost:11434` |
+| LLM | Local model via Ollama: **`gemma4:e4b`** (chosen by the phase 1 test; Gemma 2B fallback), behind a small provider interface. Ollama runs natively on the host; the backend reaches it at `http://localhost:11434` |
 | Citations | Answers cite evidence IDs and `file:line`; backend checks every cited ID exists (this does not prove semantic support) |
 
 ## Designing for a small local model

@@ -1,0 +1,286 @@
+[
+  {
+    "model": "qwen3:4b",
+    "load_seconds": 11.0,
+    "tool_calls_ok": 0,
+    "tool_calls_total": 8,
+    "specs_ok": 2,
+    "specs_total": 2,
+    "avg_seconds": 48.9,
+    "avg_tok_per_s": 6.8,
+    "tool_cases": [
+      {
+        "question": "Where is the function create_article defined?",
+        "expected": "search_code",
+        "got": null,
+        "args": {},
+        "n_calls": 0,
+        "ok": false,
+        "seconds": 58.6,
+        "tok_per_s": 6.7,
+        "tokens": 256,
+        "done_reason": "length",
+        "text": "Okay, let's see. The user is asking where the function create_article is defined. I need to figure out which tool to use here.\n\nFirst, I remember the available tools. There's search_code, query_graph, read_file, list_files, and report_capability_gap.\n\nThe question is about finding the definition of "
+      },
+      {
+        "question": "Which functions call create_article? Its node id is app.services.articles.create_article.",
+        "expected": "query_graph",
+        "got": null,
+        "args": {},
+        "n_calls": 0,
+        "ok": false,
+        "seconds": 46.2,
+        "tok_per_s": 6.0,
+        "tokens": 256,
+        "done_reason": "length",
+        "text": "Okay, let's see. The user is asking which functions call create_article, and they mentioned the node id is app.services.articles.create_article. The /no_think tag probably means they don't want me to think too much, just use the tools.\n\nFirst, I need to figure out which tool to use here. The user wa"
+      },
+      {
+        "question": "Show me lines 10 to 40 of app/api/routes/articles.py.",
+        "expected": "read_file",
+        "got": null,
+        "args": {},
+        "n_calls": 0,
+        "ok": false,
+        "seconds": 40.6,
+        "tok_per_s": 7.0,
+        "tokens": 256,
+        "done_reason": "length",
+        "text": "Okay, the user wants lines 10 to 40 of app/api/routes/articles.py. Let me check which tool can handle this.\n\nLooking at the tools provided: there's a read_file function that takes a path and start/end lines. The parameters are start, end, and path. The user specified the path as app/api/routes/artic"
+      },
+      {
+        "question": "What files are in the app/db directory?",
+        "expected": "list_files",
+        "got": null,
+        "args": {},
+        "n_calls": 0,
+        "ok": false,
+        "seconds": 38.6,
+        "tok_per_s": 7.2,
+        "tokens": 256,
+        "done_reason": "length",
+        "text": "Okay, the user is asking for the files in the app/db directory. Let me check which tool can handle this.\n\nLooking at the tools provided, there's the list_files function. It takes a path as an argument. The description says it lists the directory structure under a path. So I need to call list_files w"
+      },
+      {
+        "question": "Which route handles POST /articles?",
+        "expected": "search_code",
+        "got": null,
+        "args": {},
+        "n_calls": 0,
+        "ok": false,
+        "seconds": 48.6,
+        "tok_per_s": 5.7,
+        "tokens": 256,
+        "done_reason": "length",
+        "text": "Okay, let's see. The user is asking which route handles POST /articles. Hmm, I need to figure out which tool to use here.\n\nFirst, looking at the tools provided. There's a function called query_graph that gets related nodes of a code element, like callers, callees, imports, etc. The relation can be \""
+      },
+      {
+        "question": "What does the module app.db.repositories.users import? Node id: app.db.repositories.users.",
+        "expected": "query_graph",
+        "got": null,
+        "args": {},
+        "n_calls": 0,
+        "ok": false,
+        "seconds": 45.4,
+        "tok_per_s": 6.2,
+        "tokens": 256,
+        "done_reason": "length",
+        "text": "Okay, let's see. The user is asking what the module app.db.repositories.users imports. The node id given is app.db.repositories.users. So I need to figure out which tool to use here.\n\nLooking at the tools provided. The first tool is search_code, which does a ranked text search over symbols, paths, e"
+      },
+      {
+        "question": "When was create_article last changed in git, and by whom?",
+        "expected": "report_capability_gap",
+        "got": null,
+        "args": {},
+        "n_calls": 0,
+        "ok": false,
+        "seconds": 40.8,
+        "tok_per_s": 6.9,
+        "tokens": 256,
+        "done_reason": "length",
+        "text": "Okay, let's see. The user is asking when the create_article function was last changed in git and by whom. They specified /no_think, which probably means they don't want me to think too much, just use the tools provided.\n\nFirst, I need to check what tools are available. The tools listed are: search_c"
+      },
+      {
+        "question": "List every function in the repository that is never called anywhere, in one step.",
+        "expected": "report_capability_gap",
+        "got": null,
+        "args": {},
+        "n_calls": 0,
+        "ok": false,
+        "seconds": 40.4,
+        "tok_per_s": 7.0,
+        "tokens": 256,
+        "done_reason": "length",
+        "text": "Okay, let's see. The user wants to list every function in the repository that is never called anywhere, in one step. Hmm, I need to figure out which tool can help with that.\n\nFirst, I remember the available tools. There's search_code, query_graph, read_file, list_files, and report_capability_gap. \n\n"
+      }
+    ],
+    "spec_cases": [
+      {
+        "task": "find when a function was last changed and by whom, given a file path and line range",
+        "ok": true,
+        "seconds": 63.6,
+        "tok_per_s": 7.6,
+        "code": "def run(args, ctx):\n    # Get the file content for the specified line range\n    file_content = ctx.read_file(args[\"path\"], args[\"start_line\"], args[\"end_line\"])\n\n    # If the file content is empty, return an empty result\n    if not file_content:\n        return {}\n\n    # Use git blame to get the last change information for the line range\n    blame_result = ctx.git_blame(args[\"path\"], args[\"start_line\"], args[\"end_line\"])\n\n    # Process the blame result to extract the last change and author\n    if blame_result:\n        # Assuming blame_result is a list of blame entries\n        last_change = blame_result[-1]  # Last entry in the blame result\n        author = last_change.get(\"author\")\n        commit_hash = last_change.get(\"commit\")\n        return {\n            \"author\": author,\n            \"co"
+      },
+      {
+        "task": "list all functions that have no callers",
+        "ok": true,
+        "seconds": 66.1,
+        "tok_per_s": 7.5,
+        "code": "def run(args, ctx):\n    # Step 1: Find all function definitions\n    functions = {}\n    for path in ctx.list_files('src'):\n        with open(path, 'r') as f:\n            content = f.read()\n            # Use regex to find function definitions\n            function_defs = re.findall(r'\\bdef\\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*\\(.*?\\))', content)\n            for func in function_defs:\n                functions[func] = path\n\n    # Step 2: Find all function calls\n    calls = {}\n    for path in ctx.list_files('src'):\n        with open(path, 'r') as f:\n            content = f.read()\n            # Use regex to find function calls\n            call_matches = re.findall(r'\\b\\w+\\s*\\([^\\)]*\\)', content)\n            for call in call_matches:\n                # Extract function name from call\n                fu"
+      }
+    ]
+  },
+  {
+    "model": "gemma4:e4b",
+    "load_seconds": 17.6,
+    "tool_calls_ok": 6,
+    "tool_calls_total": 8,
+    "specs_ok": 0,
+    "specs_total": 2,
+    "avg_seconds": 39.1,
+    "avg_tok_per_s": 6.7,
+    "tool_cases": [
+      {
+        "question": "Where is the function create_article defined?",
+        "expected": "search_code",
+        "got": "search_code",
+        "args": {
+          "query": "create_article"
+        },
+        "n_calls": 1,
+        "ok": true,
+        "seconds": 23.8,
+        "tok_per_s": 7.0,
+        "tokens": 17,
+        "done_reason": "stop",
+        "text": ""
+      },
+      {
+        "question": "Which functions call create_article? Its node id is app.services.articles.create_article.",
+        "expected": "query_graph",
+        "got": "query_graph",
+        "args": {
+          "node": "app.services.articles.create_article",
+          "relation": "callers"
+        },
+        "n_calls": 1,
+        "ok": true,
+        "seconds": 25.4,
+        "tok_per_s": 6.7,
+        "tokens": 30,
+        "done_reason": "stop",
+        "text": ""
+      },
+      {
+        "question": "Show me lines 10 to 40 of app/api/routes/articles.py.",
+        "expected": "read_file",
+        "got": "read_file",
+        "args": {
+          "end": 40,
+          "path": "app/api/routes/articles.py",
+          "start": 10
+        },
+        "n_calls": 1,
+        "ok": true,
+        "seconds": 27.4,
+        "tok_per_s": 6.1,
+        "tokens": 33,
+        "done_reason": "stop",
+        "text": ""
+      },
+      {
+        "question": "What files are in the app/db directory?",
+        "expected": "list_files",
+        "got": "list_files",
+        "args": {
+          "path": "app/db"
+        },
+        "n_calls": 1,
+        "ok": true,
+        "seconds": 25.6,
+        "tok_per_s": 6.7,
+        "tokens": 17,
+        "done_reason": "stop",
+        "text": ""
+      },
+      {
+        "question": "Which route handles POST /articles?",
+        "expected": "search_code",
+        "got": "search_code",
+        "args": {
+          "query": "POST /articles"
+        },
+        "n_calls": 1,
+        "ok": true,
+        "seconds": 22.8,
+        "tok_per_s": 7.0,
+        "tokens": 17,
+        "done_reason": "stop",
+        "text": ""
+      },
+      {
+        "question": "What does the module app.db.repositories.users import? Node id: app.db.repositories.users.",
+        "expected": "query_graph",
+        "got": "query_graph",
+        "args": {
+          "node": "app.db.repositories.users",
+          "relation": "imports"
+        },
+        "n_calls": 1,
+        "ok": true,
+        "seconds": 25.5,
+        "tok_per_s": 6.9,
+        "tokens": 27,
+        "done_reason": "stop",
+        "text": ""
+      },
+      {
+        "question": "When was create_article last changed in git, and by whom?",
+        "expected": "report_capability_gap",
+        "got": "search_code",
+        "args": {
+          "query": "create_article"
+        },
+        "n_calls": 1,
+        "ok": false,
+        "seconds": 23.0,
+        "tok_per_s": 7.3,
+        "tokens": 17,
+        "done_reason": "stop",
+        "text": ""
+      },
+      {
+        "question": "List every function in the repository that is never called anywhere, in one step.",
+        "expected": "report_capability_gap",
+        "got": "search_code",
+        "args": {
+          "query": "uncalled functions"
+        },
+        "n_calls": 1,
+        "ok": false,
+        "seconds": 27.2,
+        "tok_per_s": 6.5,
+        "tokens": 17,
+        "done_reason": "stop",
+        "text": ""
+      }
+    ],
+    "spec_cases": [
+      {
+        "task": "find when a function was last changed and by whom, given a file path and line range",
+        "ok": false,
+        "seconds": 77.6,
+        "tok_per_s": 6.2,
+        "code": "{\"name\": \"get_last_changed_info\", \"description\": \"Finds the last time a specific range of lines in a file was changed and by whom, using git blame.\", \"input_schema\": {\"file_path\": \"string\", \"start_line\": \"integer\", \"end_line\": \"integer\"}, \"example_input\": {\"file_path\": \"src/main.py\", \"start_line\": 10, \"end_line\": 20}, \"code\": \"    try:\\n        blame_output = ctx.git_blame(args[\\\"file_path\\\"], args[\\\"start_line\\\"], args[\\\"end_line\\\"])\\n        if not blame_output:\\n            return {\\\"error\\\": \\\"Could not retrieve blame information for the specified range.\\\"}\\n\\n        # Assuming git_blame returns a list of strings, where each string contains the blame info.\\n        # We'll try to parse the most relevant information (like the commit hash or author/date).\\n        # Since the exact form"
+      },
+      {
+        "task": "list all functions that have no callers",
+        "ok": false,
+        "seconds": 112.5,
+        "tok_per_s": 6.1,
+        "code": "{\"name\": \"list_uncalled_functions\", \"description\": \"Lists all functions within the codebase that have no callers.\", \"input_schema\": {}, \"example_input\": {}, \"code\": \"    # 1. Get all function definitions (assuming a mechanism to list all functions exists, or we rely on static analysis context not provided. \\n    # Since we only have context methods like search_code, query_graph, etc., we must assume a way to get all function names.\\n    # For this specific task, we will simulate the process by assuming we can get a list of all function names.\\n    \\n    # *** MOCKING: In a real environment, we would use a 'get_all_functions()' context method. ***\\n    # For demonstration, let's assume we have a list of all functions.\\n    all_functions = ctx.list_all_functions() # Hypothetical method\\n    "
+      }
+    ]
+  }
+]
