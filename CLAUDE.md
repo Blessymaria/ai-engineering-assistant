@@ -146,4 +146,5 @@ Fill these in during phase 1 and keep them current.
 - Frontend checks: `cd frontend; npm run build; npm run lint`
 - Tests: `cd backend; .venv/Scripts/python -m pytest`
 - Build a code graph: `cd backend; .venv/Scripts/python -m app.graph.build <git-url-or-path>` (saved under `workspace/graphs/`)
+- Run a core tool by hand: `cd backend; .venv/Scripts/python -m app.tools search_code '{"query": "POST /articles"}'` (uses the newest graph)
 - Build runner image: `TODO`

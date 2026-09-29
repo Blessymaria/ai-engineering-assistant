@@ -59,3 +59,15 @@
   - The spec check first required a `def run(args, ctx)` line although the prompt asks for the body only; fixed to wrap body-only code before the syntax check (after these results were recorded).
 - Verified: full run completed; results in `eval/results/model_test.json`.
 - Issues / next: ~25-40 s per model step on this CPU, so one agent question takes minutes; keep tool rounds and prompts small in phase 4. Always cap reply length (`num_predict`).
+
+## 2026-09-29 — Phase 3: four core tools
+- Changes: `backend/app/tools/{repo,search,graph_query,files,registry,__main__}.py`, `backend/tests/test_tools.py`, `CLAUDE.md` (Commands)
+- Decisions:
+  - `LoadedRepo` holds the root, graph and cached file text; all reads go through the phase 2 path-safety rules.
+  - `search_code`: weighted lexical scoring, no embeddings. Exact symbol/route matches score 100; then query words found in the name (+20 if all), the id/path and the docstring; then source/doc lines containing all query words or the exact phrase (max 3 per file, labelled with their enclosing function). Words are split on snake_case/CamelCase/acronyms and lightly stemmed (`articles` = `article`). Lock files are skipped as noise.
+  - `query_graph`: relations callers, callees, imports, imported_by, contains, inherits, subclasses, handlers, mentions (the last two work in both directions). Depth ≤ 3, ≤ 60 results. Only resolved calls are followed to the next level; ambiguous/unresolved calls are listed with a note to read the source. Nodes can be given by id, unique dotted suffix, name, or route (`POST /articles`); several matches return the candidate ids instead of a guess.
+  - `read_file`: numbered lines, ≤ 200 per call, with total line count. `list_files`: tree with file counts for folders cut off by depth, ≤ 200 entries.
+  - `registry.py`: one JSON schema + one-line description per tool, and a small argument validator (clear error messages; numeric strings such as `"10"` accepted because small models send them).
+  - `subclasses` and `imported_by` are extra relations beyond the plan's list; they are reverse directions of existing edges and needed for dependency/structure questions.
+- Verified: `pytest` 79 passed, 1 skipped (symlink). Demo checks: `POST /articles` is the top search hit and leads to `create_new_article`; its callees (depth 2) show services as resolved, `ArticlesRepository.create_article` as ambiguous, `from_orm` as unresolved, and stop at unconfirmed calls; "article repository" finds `ArticlesRepository` first.
+- Issues / next: tests first failed because route ids end with their handler id, so a short handler name matched the route too; fixed by matching routes by name only. The auto-mode command check was unavailable for long stretches; allow rules for pytest/app CLIs/git (not push) were added to local settings. Next: phase 4, the agent loop.
