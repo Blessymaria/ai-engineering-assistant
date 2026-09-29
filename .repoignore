@@ -1,0 +1,11 @@
+# Breeze code-graph exclusions (gitignore syntax; merged with Breeze's built-in list).
+# Comments must be on their own lines.
+
+# Cloned repositories the assistant analyses, not our code
+workspace/
+# Python virtual environment
+.venv/
+# Frontend dependencies
+node_modules/
+# May hold an API key; never index
+.breeze.json
