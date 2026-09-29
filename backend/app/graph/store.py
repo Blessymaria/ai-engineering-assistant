@@ -17,6 +17,11 @@ def load_graph(path: Path) -> nx.MultiDiGraph:
     return nx.node_link_graph(data, directed=True, multigraph=True, edges="edges")
 
 
+def latest_graph(workspace: Path) -> Path | None:
+    """The most recently saved graph file, if any."""
+    return max((workspace / "graphs").glob("*.json"), key=lambda p: p.stat().st_mtime, default=None)
+
+
 def graph_path(workspace: Path, root: Path, commit: str | None) -> Path:
     """One graph file per repository and commit."""
     return workspace / "graphs" / f"{root.name}-{(commit or 'local')[:12]}.json"

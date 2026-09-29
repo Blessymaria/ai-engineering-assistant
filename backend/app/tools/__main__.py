@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from app.graph.build import DEFAULT_WORKSPACE
+from app.graph.store import latest_graph
 from app.tools.registry import CORE_TOOLS, run_tool
 from app.tools.repo import LoadedRepo, ToolError
 
@@ -21,8 +22,7 @@ def main() -> None:
     parser.add_argument("--graph", type=Path, help="graph file (default: newest in workspace/graphs)")
     opts = parser.parse_args()
 
-    graph_file = opts.graph or max((DEFAULT_WORKSPACE / "graphs").glob("*.json"), key=lambda p: p.stat().st_mtime,
-                                   default=None)
+    graph_file = opts.graph or latest_graph(DEFAULT_WORKSPACE)
     if graph_file is None:
         sys.exit("no graph found; build one with: python -m app.graph.build <git-url-or-path>")
     repo = LoadedRepo.from_graph_file(graph_file)
