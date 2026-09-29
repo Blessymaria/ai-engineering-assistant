@@ -221,3 +221,5 @@ __marimo__/
 node_modules/
 workspace/
 .claude/settings.local.json
+# breezeai-cog artifacts (Breeze indexing)
+.cog/
