@@ -14,6 +14,7 @@ from app.graph.build import DEFAULT_WORKSPACE
 from app.graph.store import latest_graph
 from app.llm.base import LLMError, LLMProvider
 from app.llm.ollama import OllamaProvider
+from app.toolfactory.factory import make_factory
 from app.tools.repo import LoadedRepo
 
 router = APIRouter(prefix="/api")
@@ -35,6 +36,10 @@ def get_llm() -> LLMProvider:
     return OllamaProvider()
 
 
+def get_factory(repo: LoadedRepo, llm: LLMProvider):
+    return make_factory(repo, llm, DEFAULT_WORKSPACE)
+
+
 class AskRequest(BaseModel):
     question: str
 
@@ -52,7 +57,8 @@ def ask(body: AskRequest) -> StreamingResponse:
     done = object()
 
     def work() -> None:
-        agent = Agent(repo, llm, on_event=lambda e: events.put(_sse(e.type, {**e.data, "t": e.t})))
+        agent = Agent(repo, llm, on_event=lambda e: events.put(_sse(e.type, {**e.data, "t": e.t})),
+                      tool_factory=get_factory(repo, llm))
         try:
             result = agent.run(body.question)
             evidence = {k: v.to_dict() for k, v in result.evidence.items.items()}

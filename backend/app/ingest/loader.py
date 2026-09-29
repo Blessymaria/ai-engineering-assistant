@@ -43,8 +43,8 @@ def clone(url: str, workspace: Path) -> Path:
     if (target / ".git").is_dir():
         return target
     workspace.mkdir(parents=True, exist_ok=True)
-    # Submodules are not fetched and no repository code is run.
-    _git(["clone", "--depth", "1", "--no-tags", "--", url, str(target)])
+    # Full history (git_log/git_blame need it); submodules are not fetched and no repository code is run.
+    _git(["clone", "--no-tags", "--", url, str(target)])
     return target
 
 

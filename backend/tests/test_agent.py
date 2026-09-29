@@ -26,8 +26,8 @@ class FakeLLM:
         self.replies = list(replies)
         self.calls = []
 
-    def chat(self, messages, tools=None, max_tokens=1024):
-        self.calls.append({"messages": messages, "tools": tools})
+    def chat(self, messages, tools=None, max_tokens=1024, json_schema=None):
+        self.calls.append({"messages": messages, "tools": tools, "json_schema": json_schema})
         return self.replies.pop(0)
 
 
@@ -192,6 +192,7 @@ def test_ask_streams_events(repo, monkeypatch):
     llm = FakeLLM([call("search_code", query="create_order"), text("It is in orders.py [E1].")])
     monkeypatch.setattr(routes, "_state", {"repo": repo})
     monkeypatch.setattr(routes, "get_llm", lambda: llm)
+    monkeypatch.setattr(routes, "get_factory", lambda repo, llm: None)
     response = TestClient(app).post("/api/ask", json={"question": "Where is create_order?"})
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")

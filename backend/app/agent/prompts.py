@@ -15,5 +15,14 @@ NO_TOOL_YET = "You have not looked at the code yet. Call a tool first, then answ
 LIMIT_REACHED = ("The tool limit is reached. Answer the question now from the results you have, with citations. "
                  "Say clearly what is still unresolved.")
 
+TOOL_CREATED = ("A new tool `{name}` was created and tested: {description}. Arguments: {params}. "
+                "It worked on {example}. Call it now with the arguments you need.")
+
+GAP_FAILED = ("Creating a tool for this failed ({errors}). Continue with the available tools if they can help; "
+              "otherwise answer with what you have and state this gap as unresolved.")
+
+GAP_LIMIT = ("No more tools can be created for this question. Use the available tools, or answer with what "
+             "you have and state the gap as unresolved.")
+
 GAP_UNAVAILABLE = ("No new tool can be created for this yet. Continue with the available tools if they can help; "
                    "otherwise answer with what you have and state this gap as unresolved.")

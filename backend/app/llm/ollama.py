@@ -26,7 +26,8 @@ class OllamaProvider:
         with urllib.request.urlopen(req, timeout=self.timeout) as res:
             return json.load(res)
 
-    def chat(self, messages: list[dict], tools: list[dict] | None = None, max_tokens: int = 1024) -> LLMReply:
+    def chat(self, messages: list[dict], tools: list[dict] | None = None, max_tokens: int = 1024,
+             json_schema: dict | None = None) -> LLMReply:
         body = {
             "model": self.name,
             "messages": messages,
@@ -36,6 +37,8 @@ class OllamaProvider:
         }
         if tools:
             body["tools"] = tools
+        if json_schema:
+            body["format"] = json_schema
         if self._think_supported:
             body["think"] = False
         start = time.perf_counter()

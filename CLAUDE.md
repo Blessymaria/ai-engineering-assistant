@@ -132,7 +132,7 @@ eval/             # evaluation questions and results
 
 ## Environment notes
 
-- Development machine: Windows 11, 32 GB RAM, Intel CPU, no dedicated GPU. Ollama runs natively; Docker Desktop provides containers.
+- Development machine: Windows 11, 32 GB RAM, Intel CPU, no dedicated GPU. Ollama runs natively. Containers: Docker Engine inside the WSL `Ubuntu` distro (no Docker Desktop; no admin rights, Docker Hub blocked on this network), called by the backend as `wsl -d Ubuntu -u root -- docker` (override with `AIEA_DOCKER`). The runner image `aiea-python-base:local` is built locally.
 - Use paths and commands that work on Windows (PowerShell or Git Bash); avoid Linux-only assumptions in scripts.
 
 ## Commands
@@ -147,4 +147,4 @@ Fill these in during phase 1 and keep them current.
 - Tests: `cd backend; .venv/Scripts/python -m pytest`
 - Build a code graph: `cd backend; .venv/Scripts/python -m app.graph.build <git-url-or-path>` (saved under `workspace/graphs/`)
 - Run a core tool by hand: `cd backend; .venv/Scripts/python -m app.tools search_code '{"query": "POST /articles"}'` (uses the newest graph)
-- Build runner image: `TODO`
+- Build runner image: `wsl -d Ubuntu -u root -- bash runner-image/build-local.sh` (or `docker build -t aiea-python-base:local runner-image` where Docker Hub is reachable)

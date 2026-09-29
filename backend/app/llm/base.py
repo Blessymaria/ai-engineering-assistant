@@ -26,6 +26,8 @@ class LLMReply:
 class LLMProvider(Protocol):
     name: str
 
-    def chat(self, messages: list[dict], tools: list[dict] | None = None, max_tokens: int = 1024) -> LLMReply:
-        """messages use the Ollama/OpenAI chat format; tools are function schemas."""
+    def chat(self, messages: list[dict], tools: list[dict] | None = None, max_tokens: int = 1024,
+             json_schema: dict | None = None) -> LLMReply:
+        """messages use the Ollama/OpenAI chat format; tools are function schemas;
+        json_schema forces the reply content to be JSON matching it."""
         ...
