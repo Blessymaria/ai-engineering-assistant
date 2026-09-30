@@ -1,0 +1,79 @@
+{
+  "gap": {
+    "missing_capability": "git history/revision tracking",
+    "reason": "The available tools do not provide access to version control system (VCS) history like Git, which is necessary to determine when a specific function was last changed and by whom.",
+    "example_input": "last changed date and author for a function"
+  },
+  "created": true,
+  "tool": "get_function_history",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "target_name": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "target_name"
+    ]
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "spec": {
+        "name": "get_function_history",
+        "description": "Retrieves the last change details (date, author) for a specified function or class.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "target_name": {
+              "type": "string",
+              "description": "The name of the function or class to check history for (e.g., get_article_by_slug)."
+            }
+          },
+          "required": [
+            "target_name"
+          ]
+        },
+        "example_input": {
+          "target_name": "get_article_by_slug"
+        },
+        "code": "import re\n\n# 1. Find the node details (path, start, end) for the target_name\nnodes = ctx.list_nodes(\"function\")\nnode_info = next(((n for n in nodes if n[\"name\"] == args.get(\"target_name\") and n.get(\"path\"))), None)\n\nif not node_info:\n    return {\"error\": f\"Could not find node named {args.get(\"target_name\")}\"}\n\npath = node_info[\"path\"]\nstart = node_info.get(\"line\", 1)\nend = node_info.get(\"end\", 1000) # Use a large number if end is not available\n\n# 2. Use git_blame to get line-by-line history for the relevant range\nblame_results = ctx.git_blame(path, start, end)\n\n# 3. Aggregate the results to find the most recent change for the whole block\n# Since blame gives line-by-line, we'll find the latest commit across all lines.\n# We'll use the commit date from the first entry as a proxy for the block's last change.\n\nif not blame_results:\n    return {\"message\": \"No blame information found for this range.\"}\n\n# Sort by date (ISO format allows string comparison)\nlatest_commit = max(blame_results, key=lambda x: x.get(\"date\", \"0000-00-00\"))\n\nreturn {\n    \"function_name\": args.get(\"target_name\"),\n    \"file_path\": path,\n    \"last_changed_date\": latest_commit.get(\"date\"),\n    \"last_changed_author\": latest_commit.get(\"author\"),\n    \"summary\": latest_commit.get(\"summary\")\n}"
+      },
+      "raw": null,
+      "errors": [],
+      "test": {
+        "input": {
+          "target_name": "get_article_by_slug"
+        },
+        "ok": true,
+        "output": {
+          "function_name": "get_article_by_slug",
+          "file_path": "app/db/repositories/articles.py",
+          "last_changed_date": "2020-09-01T22:31:34+00:00",
+          "last_changed_author": "dependabot-preview[bot]",
+          "summary": "Bump black from 19.10b0 to 20.8b1 (#80)"
+        },
+        "error": null,
+        "seconds": 6.91,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          },
+          {
+            "method": "git_blame",
+            "args": {
+              "path": "app/db/repositories/articles.py",
+              "start": 237,
+              "end": 252
+            }
+          }
+        ]
+      },
+      "llm_seconds": 118.2
+    }
+  ]
+}

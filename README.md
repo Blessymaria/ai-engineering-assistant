@@ -84,7 +84,7 @@ cd frontend
 npm run dev
 ```
 
-Open http://localhost:5173, load a repository in the top bar (for the demo: `https://github.com/nsidnev/fastapi-realworld-example-app`, about 5 s), and ask a question in the box at the bottom. Answers take **2-6 minutes** on a laptop CPU; the activity panel shows progress.
+Open http://localhost:5173, load a repository in the top bar (for the demo: `https://github.com/nsidnev/fastapi-realworld-example-app`, about 5 s), and ask a question in the box at the bottom. Answers take **2-6 minutes** on a laptop CPU; the activity panel shows progress. **Stop** ends a question at its next step (a model call already running finishes first). Local folders can only be loaded from the allowed roots (see `AIEA_ALLOWED_ROOTS` below); Git URLs work from anywhere.
 
 Command-line equivalents:
 
@@ -97,7 +97,7 @@ cd backend
 
 Run the evaluation: `cd backend && .venv/Scripts/python ../eval/run_eval.py` (about an hour).
 
-Configuration: `OLLAMA_MODEL` (default `gemma4:e4b`), `OLLAMA_URL` (default `http://localhost:11434`), `OLLAMA_NUM_CTX` (default 16384), `AIEA_DOCKER` (Docker command).
+Configuration: `OLLAMA_MODEL` (default `gemma4:e4b`), `OLLAMA_URL` (default `http://localhost:11434`), `OLLAMA_NUM_CTX` (default 16384), `AIEA_DOCKER` (Docker command), `AIEA_ALLOWED_ROOTS` (folders the UI may load local repositories from, separated by `;` on Windows; default `workspace/` and your Desktop).
 
 ## Evaluation
 
@@ -111,6 +111,21 @@ Eight questions on the demo repository (structure, flow, dependencies, implement
 | Tools created when not needed | 0 | 1 (fabricated a value; now blocked) |
 
 The evaluation found four real bugs, each recorded before it was fixed: Ollama's default **4,096-token context silently dropped the system prompt and question** from longer prompts; `read_file` showed the model only 60 of the lines it returned; generated tools were tested on invented names; and a **generated tool returned a hard-coded number** that the agent reported as fact with a valid citation. Tools that read no repository data through `ctx` are now rejected.
+
+## Deviations from the plan
+
+[docs/PLAN.md](docs/PLAN.md) is the design as approved before development; it is kept unchanged. What the build does differently, and why (details and dates in the [devlog](docs/DEVLOG.md)):
+
+| Plan | Built | Why |
+| --- | --- | --- |
+| Docker Desktop runs generated tools | Docker Engine inside WSL Ubuntu, runner image built locally from the Ubuntu mirror | No admin rights on the development machine; Docker Hub blocked by the network. Same container limits |
+| Model: Qwen3 4B or Gemma 4 E4B | `gemma4:e4b` | Chosen by the phase 1 test (6/6 tool calls vs inconsistent qwen3:4b) |
+| Python 3.12 | Python 3.13 | Already installed; approved in phase 1 |
+| 12 evaluation questions, two gap types (`function_history`, `find_uncalled_functions`) | 8 questions, one gap type (git history, run 3 times) | The plan's reduced scope for the 3-day schedule; uncertainty cases kept (nonexistent symbol, runtime-only data) |
+| Docs: README/Markdown headings | Markdown and reStructuredText | The demo repository's only doc is `README.rst` |
+| Mermaid diagrams written by the model | Built in code from the graph edges the agent visited | The model never produced them; this also guarantees only visited nodes appear |
+| Repository bar shows indexing progress | A spinner while the graph builds (~5 s for the demo) | Simpler; indexing is fast at this size |
+| — (not in plan) | Stop button; local folders limited to allowed roots; generated tools must read data through `ctx` | Added after the final review and evaluation |
 
 ## Assumptions
 
@@ -130,6 +145,8 @@ The evaluation found four real bugs, each recorded before it was fixed: Ollama's
 - **Static analysis:** dependency injection, polymorphism and reflection appear as ambiguous or unresolved calls; methods inherited from library classes (e.g. pydantic `from_orm`) are unresolved; route prefixes that come from runtime settings (the demo's `/api`) cannot be seen, so routes are shown without them.
 - **Retrieval is lexical,** so questions worded differently from the code may need extra search steps. There are no embeddings.
 - **Citation validation** confirms that cited evidence ids exist, not that the evidence supports each claim.
+- **No login:** the backend is meant for one person on their own machine. It listens on `localhost` only, and the UI can load local folders only from `AIEA_ALLOWED_ROOTS`; within a loaded repository the agent can read any text file under 1 MB, and that text is sent to the local model.
+- **Stopping** takes effect between steps, so a model call already in progress (up to about a minute) finishes first.
 - **Isolation:** containers give real isolation for an MVP (no network, read-only filesystem, no repository mount, CPU/memory/process/time limits, all capabilities dropped) but not VM-level isolation. Generated tools last one session.
 - **Runtime facts** (data in databases, performance, test coverage) cannot be answered, because the analysed application is never run.
 - **Environment:** on this network Docker Hub and some GitHub downloads fail certificate checks, hence the locally built runner image. The Breeze development index could not include the TypeScript files for the same reason.

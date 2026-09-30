@@ -1,0 +1,116 @@
+{
+  "gap": {
+    "missing_capability": "git history/revision tracking",
+    "reason": "The available tools do not provide access to version control system (VCS) history like Git, which is necessary to determine when a specific function was last changed and by whom.",
+    "example_input": "last changed date and author for a function"
+  },
+  "created": false,
+  "tool": null,
+  "parameters": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "spec": {
+        "name": "get_function_history",
+        "description": "Retrieves the last changed date and author for a specified function.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "function_name": {
+              "type": "string"
+            },
+            "file_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "function_name",
+            "file_path"
+          ]
+        },
+        "example_input": {
+          "function_name": "some_function",
+          "file_path": "src/main.py"
+        },
+        "code": "import re\n\n# 1. Find the line range for the function\nnodes = ctx.list_nodes(\"function\")\nfunc_node = next((n for n in nodes if n[\"name\"] == args[\"function_name\"] and n[\"path\"] == args[\"file_path\"]), None)\nif not func_node:\n    return {\"error\": \"Function not found or path mismatch.\"}\n\nstart_line = func_node[\"line\"]\nend_line = func_node[\"end\"]\n\n# 2. Use git_blame to get blame info for the range\nblame_data = ctx.git_blame(args[\"file_path\"], start_line, end_line)\n\n# 3. Process blame data to find the most recent change for the whole function\n# Since blame gives line-by-line, we'll aggregate the latest info found.\n# We assume the last entry in the blame list (if sorted by date, which it isn't guaranteed to be) or just take the first one as representative if we can't sort reliably.\n# Given the constraint, we'll find the max date from the available entries.\n\nlatest_commit = None\nlatest_date = \"0000-00-00\"\n\nfor entry in blame_data:\n    # ISO dates sort correctly as strings\n    if entry[\"date\"] > latest_date:\n        latest_date = entry[\"date\"]\n        latest_commit = entry\n\nif latest_commit:\n    return {\"last_changed_date\": latest_commit[\"date\"], \"author\": latest_commit[\"author\"]}\nelse:\n    return {\"error\": \"Could not retrieve blame information for the specified range.\"}"
+      },
+      "raw": null,
+      "errors": [
+        "test run on example_input returned an error: Function not found or path mismatch.. Use an example_input that exists in this repository, and do not catch exceptions."
+      ],
+      "test": {
+        "input": {
+          "function_name": "some_function",
+          "file_path": "src/main.py"
+        },
+        "ok": true,
+        "output": {
+          "error": "Function not found or path mismatch."
+        },
+        "error": null,
+        "seconds": 8.36,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          }
+        ]
+      },
+      "llm_seconds": 96.5
+    },
+    {
+      "attempt": 2,
+      "spec": {
+        "name": "get_function_history",
+        "description": "Retrieves the last changed date and author for a specified function.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "function_name": {
+              "type": "string"
+            },
+            "file_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "function_name",
+            "file_path"
+          ]
+        },
+        "example_input": {
+          "function_name": "run",
+          "file_path": "tool_script.py"
+        },
+        "code": "import re\n\n# 1. Find the line range for the function\nnodes = ctx.list_nodes(\"function\")\nfunc_node = next((n for n in nodes if n[\"name\"] == args[\"function_name\"] and n[\"path\"] == args[\"file_path\"]), None)\nif not func_node:\n    return {\"error\": \"Function not found or path mismatch.\"}\n\nstart_line = func_node[\"line\"]\nend_line = func_node[\"end\"]\n\n# 2. Use git_blame to get blame info for the range\nblame_data = ctx.git_blame(args[\"file_path\"], start_line, end_line)\n\n# 3. Process blame data to find the most recent change for the whole function\nlatest_commit = None\nlatest_date = \"0000-00-00\"\n\nfor entry in blame_data:\n    # ISO dates sort correctly as strings\n    if entry[\"date\"] > latest_date:\n        latest_date = entry[\"date\"]\n        latest_commit = entry\n\nif latest_commit:\n    return {\"last_changed_date\": latest_commit[\"date\"], \"author\": latest_commit[\"author\"]}\nelse:\n    return {\"error\": \"Could not retrieve blame information for the specified range.\"}"
+      },
+      "raw": null,
+      "errors": [
+        "test run on example_input returned an error: Function not found or path mismatch.. Use an example_input that exists in this repository, and do not catch exceptions."
+      ],
+      "test": {
+        "input": {
+          "function_name": "run",
+          "file_path": "tool_script.py"
+        },
+        "ok": true,
+        "output": {
+          "error": "Function not found or path mismatch."
+        },
+        "error": null,
+        "seconds": 8.32,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          }
+        ]
+      },
+      "llm_seconds": 77.3
+    }
+  ]
+}

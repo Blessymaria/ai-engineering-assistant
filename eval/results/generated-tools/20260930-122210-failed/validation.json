@@ -1,0 +1,123 @@
+{
+  "gap": {
+    "missing_capability": "git history/revision tracking",
+    "reason": "The available tools do not provide access to the Git history (commit messages, dates, or authors) for specific functions or files.",
+    "example_input": "last changed date and author for a function"
+  },
+  "created": false,
+  "tool": null,
+  "parameters": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "spec": {
+        "name": "get_git_history_for_node",
+        "description": "Retrieves the last commit details for a given function or class.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_name": {
+              "type": "string",
+              "description": "The name of the function or class."
+            },
+            "node_kind": {
+              "type": "string",
+              "description": "The kind of node (function or class)."
+            },
+            "path": {
+              "type": "string",
+              "description": "The file path where the node resides."
+            }
+          }
+        },
+        "example_input": {
+          "node_name": "some_function",
+          "node_kind": "function",
+          "path": "some_file.py"
+        },
+        "code": "import re\n\nnode_name = args.get(\"node_name\")\nnode_kind = args.get(\"node_kind\")\npath = args.get(\"path\")\n\nif not all([node_name, node_kind, path]):\n    return {\"error\": \"Missing node_name, node_kind, or path in arguments.\"}\n\n# Use git_blame to get line-by-line history for the file\nblame_data = ctx.git_blame(path, 1, None)\n\n# Simple heuristic: if the node is a function/class, we assume we want the last commit affecting it.\n# Since git_blame gives line info, we'll just return the last few entries as a proxy for history.\n\n# For simplicity and adherence to constraints, we'll just return the last 3 blame entries.\n# A more robust solution would map line numbers to the node's range.\n\nresults = []\nfor entry in blame_data[:3]:\n    results.append({\"line\": entry[\"line\"], \"commit\": entry[\"commit\"], \"author\": entry[\"author\"], \"date\": entry[\"date\"]})\n\nreturn {\"file\": path, \"node\": node_name, \"history\": results}"
+      },
+      "raw": null,
+      "errors": [
+        "test run on example_input failed: RuntimeError: missing required argument(s): end"
+      ],
+      "test": {
+        "input": {
+          "node_name": "some_function",
+          "node_kind": "function",
+          "path": "some_file.py"
+        },
+        "ok": false,
+        "output": null,
+        "error": "RuntimeError: missing required argument(s): end",
+        "seconds": 8.23,
+        "ctx_calls": [
+          {
+            "method": "git_blame",
+            "args": {
+              "path": "some_file.py",
+              "start": 1
+            }
+          }
+        ]
+      },
+      "llm_seconds": 88.1
+    },
+    {
+      "attempt": 2,
+      "spec": {
+        "name": "get_git_history_for_node",
+        "description": "Retrieves the last commit details for a given function or class by analyzing blame information.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_name": {
+              "type": "string",
+              "description": "The name of the function or class."
+            },
+            "node_kind": {
+              "type": "string",
+              "description": "The kind of node (function or class)."
+            },
+            "path": {
+              "type": "string",
+              "description": "The file path where the node resides."
+            }
+          }
+        },
+        "example_input": {
+          "node_name": "some_function",
+          "node_kind": "function",
+          "path": "some_file.py"
+        },
+        "code": "import collections\n\nnode_name = args.get(\"node_name\")\nnode_kind = args.get(\"node_kind\")\npath = args.get(\"path\")\n\nif not all([node_name, node_kind, path]):\n    return {\"error\": \"Missing node_name, node_kind, or path in arguments.\"}\n\n# To use ctx.git_blame(path, start, end), we need line numbers. \n# We first search for the node to get its line range.\nnodes = ctx.list_nodes(node_kind)\nnode_info = next((n for n in nodes if n[\"path\"] == path and n[\"name\"] == node_name), None)\n\nif not node_info:\n    return {\"error\": f\"Node {node_name} of kind {node_kind} not found in {path}.\"}\n\nstart_line = node_info[\"line\"]\nend_line = node_info[\"end\"] # Assuming 'end' is inclusive or the correct end line\n\n# Use git_blame with the determined range\nblame_data = ctx.git_blame(path, start_line, end_line)\n\n# Return the last 3 blame entries as a proxy for recent history affecting the node.\nresults = blame_data[:3]\n\nreturn {\"file\": path, \"node\": node_name, \"history\": results}"
+      },
+      "raw": null,
+      "errors": [
+        "test run on example_input returned an error: Node some_function of kind function not found in some_file.py.. Use an example_input that exists in this repository, and do not catch exceptions."
+      ],
+      "test": {
+        "input": {
+          "node_name": "some_function",
+          "node_kind": "function",
+          "path": "some_file.py"
+        },
+        "ok": true,
+        "output": {
+          "error": "Node some_function of kind function not found in some_file.py."
+        },
+        "error": null,
+        "seconds": 6.4,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          }
+        ]
+      },
+      "llm_seconds": 71.4
+    }
+  ]
+}

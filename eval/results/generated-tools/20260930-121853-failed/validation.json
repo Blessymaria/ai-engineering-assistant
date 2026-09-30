@@ -1,0 +1,112 @@
+{
+  "gap": {
+    "missing_capability": "git history/revision tracking",
+    "reason": "The available tools do not provide access to the Git history (like 'git log') to determine when a specific function was last changed or by whom.",
+    "example_input": "last changed date and author for a function"
+  },
+  "created": false,
+  "tool": null,
+  "parameters": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "spec": {
+        "name": "get_function_git_history",
+        "description": "Retrieves the last changed date and author for a specified function or class.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "target_name": {
+              "type": "string",
+              "description": "The name of the function or class to check."
+            }
+          }
+        },
+        "example_input": {
+          "target_name": "some_function_name"
+        },
+        "code": "import re\n\n# 1. Find the node(s) corresponding to the target name\nnodes = ctx.list_nodes(\"function\") + ctx.list_nodes(\"class\")\ntarget_nodes = [n for n in nodes if n[\"name\"] == args.get(\"target_name\") and n[\"path\"]]\n\nif not target_nodes:\n    return {\"error\": f\"Could not find node named {args.get(\"target_name\")}\"}\n\n# For simplicity, we assume the first found node is the correct one\nnode = target_nodes[0]\npath = node[\"path\"]\nstart_line = node.get(\"line\", 1)\nend_line = node.get(\"end\", 1000) # Use a large number if end is missing\n\n# 2. Use git_blame to get blame info for the relevant lines\nblame_data = ctx.git_blame(path, start_line, end_line)\n\n# 3. Process blame data to find the most recent change\n# Since git_blame returns one entry per line, we look for the latest date.\n# The date format is ISO, so string comparison works for sorting.\nlatest_commit = None\nlatest_date = \"0000-00-00T00:00:00Z\"\n\nfor entry in blame_data:\n    # Assuming 'date' field exists and is comparable\n    if entry.get(\"date\") and entry[\"date\"] > latest_date:\n        latest_date = entry[\"date\"]\n        latest_commit = entry\n\nif latest_commit:\n    return {\"path\": path, \"last_changed_date\": latest_date, \"author\": latest_commit.get(\"author\"), \"summary\": latest_commit.get(\"summary\")}\nelse:\n    return {\"path\": path, \"last_changed_date\": \"N/A\", \"author\": \"N/A\", \"summary\": \"No blame information found for this range.\"}"
+      },
+      "raw": null,
+      "errors": [
+        "test run on example_input returned an error: Could not find node named some_function_name. Use an example_input that exists in this repository, and do not catch exceptions."
+      ],
+      "test": {
+        "input": {
+          "target_name": "some_function_name"
+        },
+        "ok": true,
+        "output": {
+          "error": "Could not find node named some_function_name"
+        },
+        "error": null,
+        "seconds": 8.61,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          },
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "class"
+            }
+          }
+        ]
+      },
+      "llm_seconds": 108.3
+    },
+    {
+      "attempt": 2,
+      "spec": {
+        "name": "get_function_git_history",
+        "description": "Retrieves the last changed date and author for a specified function or class.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "target_name": {
+              "type": "string",
+              "description": "The name of the function or class to check."
+            }
+          }
+        },
+        "example_input": {
+          "target_name": "run"
+        },
+        "code": "import re\n\n# 1. Find the node(s) corresponding to the target name\nnodes = ctx.list_nodes(\"function\") + ctx.list_nodes(\"class\")\ntarget_nodes = [n for n in nodes if n[\"name\"] == args.get(\"target_name\") and n[\"path\"]]\n\nif not target_nodes:\n    return {\"error\": f\"Could not find node named {args.get(\"target_name\")}\"}\n\n# For simplicity, we assume the first found node is the correct one\nnode = target_nodes[0]\npath = node[\"path\"]\nstart_line = node.get(\"line\", 1)\nend_line = node.get(\"end\", 1000) # Use a large number if end is missing\n\n# 2. Use git_blame to get blame info for the relevant lines\nblame_data = ctx.git_blame(path, start_line, end_line)\n\n# 3. Process blame data to find the most recent change\n# Since git_blame returns one entry per line, we look for the latest date.\n# The date format is ISO, so string comparison works for sorting.\nlatest_commit = None\nlatest_date = \"0000-00-00T00:00:00Z\"\n\nfor entry in blame_data:\n    # Assuming 'date' field exists and is comparable\n    if entry.get(\"date\") and entry[\"date\"] > latest_date:\n        latest_date = entry[\"date\"]\n        latest_commit = entry\n\nif latest_commit:\n    return {\"path\": path, \"last_changed_date\": latest_date, \"author\": latest_commit.get(\"author\"), \"summary\": latest_commit.get(\"summary\")}\nelse:\n    return {\"path\": path, \"last_changed_date\": \"N/A\", \"author\": \"N/A\", \"summary\": \"No blame information found for this range.\"}"
+      },
+      "raw": null,
+      "errors": [
+        "test run on example_input returned an error: Could not find node named run. Use an example_input that exists in this repository, and do not catch exceptions."
+      ],
+      "test": {
+        "input": {
+          "target_name": "run"
+        },
+        "ok": true,
+        "output": {
+          "error": "Could not find node named run"
+        },
+        "error": null,
+        "seconds": 9.11,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          },
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "class"
+            }
+          }
+        ]
+      },
+      "llm_seconds": 99.8
+    }
+  ]
+}

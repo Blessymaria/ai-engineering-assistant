@@ -9,3 +9,6 @@ workspace/
 node_modules/
 # May hold an API key; never index
 .breeze.json
+
+# Evaluation outputs are data, not code
+eval/results/

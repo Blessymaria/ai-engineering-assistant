@@ -6,12 +6,13 @@ Eight questions on [fastapi-realworld-example-app](https://github.com/nsidnev/fa
 
 | | |
 | --- | --- |
-| Model | `gemma4:e4b` via Ollama 0.34.4, temperature 0 |
+| Model | `gemma4:e4b` via Ollama **0.35.0**, temperature 0 (Ollama updated itself from 0.34.4 on 2026-09-30 at 11:19, before round 1; the phase 1-5 runs in the devlog used 0.34.4) |
 | Hardware | Intel Core Ultra 5 225U, 32 GB RAM, CPU only (no GPU), Windows 11 |
 | Demo repository | `fastapi-realworld-example-app` @ `029eb7781c60d5f563ee8990a0cbfb79b244538c` (full history, 209 commits) |
 | Round 1 | assistant @ `d85885e`, run 2026-09-30 11:56 |
 | Round 2 | assistant @ `4c5d0a2` (three fixes found by round 1), run 2026-09-30 12:42 (resumed at 13:20 after a stalled model call) |
 | Round 3 | assistant @ `7cf9241` (fix found by round 2), Q4 only, run 2026-09-30 14:20 |
+| Round 4 | assistant @ `c3bae7c` (runtime-data prompt rule, stop button, path limits), Q4 ×3, run 2026-09-30 |
 
 Each round was recorded exactly as it ran and committed before any fix (`ad73a2d` round 1, `5dfbb7b` round 2). Fixes between rounds were for bugs the evaluation exposed; nothing was tuned to a specific question's wording.
 
@@ -39,6 +40,16 @@ Verdicts: ✅ correct · 🟡 mostly correct (a minor fact missing) · ⚠️ pa
 | Tools created when not needed | 0 | 1 (Q4, fabricated) |
 | Total model time | 29 min | 61 min (incl. one 27-min stall) |
 
+### Round 4: Q4 three times, after adding a runtime-data rule to the prompt (`c3bae7c`)
+
+| Run | Invented a number | Reported a gap / built a tool | Said it cannot be known from code |
+| --- | --- | --- | --- |
+| 1 | No | No | Partly: "cannot determine the total number ... from the code provided", but because no count function was found |
+| 2 | No | No | No: says a count function "would be required", as if code could answer it |
+| 3 | No | No | No: same as run 2 |
+
+The rule stopped fabrication and unnecessary tool creation (3/3), but not the framing: gemma4:e4b treats "how many are stored?" as "is there a function that counts them?".
+
 ## What the evaluation found, and what was fixed
 
 **Round 1 → round 2 (`4c5d0a2`):**
@@ -58,6 +69,17 @@ Verdicts: ✅ correct · 🟡 mostly correct (a minor fact missing) · ⚠️ pa
 - **Answers stop short:** Q3 did not follow the call into the repository, and did not flag that call as unconfirmed although the graph marks it ambiguous. The Mermaid diagram is only drawn when the agent used `query_graph` on calls (Q5, Q6 in round 2; not Q3).
 - **Runtime-only questions:** the agent never explained, in any round, that stored data cannot be known from static analysis; round 3 also misreported search hits as SQL it had found. The model takes different paths on the same question (round 2 reported a gap and built a tool, round 3 did not).
 - **Speed:** 1-5 minutes per question on this CPU, and the laptop occasionally slowed a single call to ~30 minutes when unattended.
+
+## Generated tools
+
+Every tool the model wrote during the evaluation is kept in [results/generated-tools/](results/generated-tools/), each with its `validation.json` (the gap, every attempt, the static-check and test-run results) and, when accepted, its `tool.py`:
+
+| Folder | Round / question | Outcome |
+| --- | --- | --- |
+| `20260930-121853-failed`, `-122210-failed`, `-122545-failed` | Round 1, Q8 runs 1-3 | Rejected twice each: tested on invented names |
+| `20260930-135726-count_table_records` | Round 2, Q4 | Accepted, **returns a hard-coded 12345** (would now be rejected: no ctx calls) |
+| `20260930-141309-get_function_history` | Round 2, Q8 run 1 | Accepted; blames the function's lines; correct answer |
+| `20260930-141559-get_function_history`, `-141846-get_function_history` | Round 2, Q8 runs 2-3 | Accepted; uses the file's last commit instead; wrong answer |
 
 ## Cases covered elsewhere
 
