@@ -1,0 +1,722 @@
+{
+  "id": "Q6",
+  "run": 1,
+  "question": "How is the JWT token created, and where is it checked on incoming requests?",
+  "expected": [
+    "create_jwt_token (app/services/jwt.py:15) encodes the payload with jwt.encode and an expiry",
+    "create_access_token_for_user (app/services/jwt.py:27) wraps it for a User",
+    "Checked on requests in app/api/dependencies/authentication.py: the Authorization header is read and _get_current_user calls jwt.get_username_from_token (line 84)",
+    "get_username_from_token (app/services/jwt.py:35) decodes with jwt.decode"
+  ],
+  "answer": "The JWT token is created in the `app/services/jwt.py` file [E6].\n\n**Token Creation:**\n\n1.  **`create_jwt_token` function:** This function is the core creator [E6, app/services/jwt.py:15]. It takes `jwt_content`, `secret_key`, and `expires_delta` as arguments [E6, app/services/jwt.py:15]. It constructs the token by encoding the content along with an expiration time (`exp`) and subject (`sub`) [E6, app/services/jwt.py:23].\n2.  **`create_access_token_for_user` function:** This function is used to create a token specifically for a `User` object [E6, app/services/jwt.py:27]. It calls `create_jwt_token` internally, using the user's username as the content and setting the expiration to one week [E6, app/services/jwt.py:31].\n\n**Token Checking/Validation:**\n\nThe function responsible for reading and validating the token is `get_username_from_token` [E6, app/services/jwt.py:35].\n\n*   This function attempts to decode the provided `token` using the `secret_key` [E6, app/services/jwt.py:37].\n*   It uses `jwt.decode()` from the `jwt` library [E6, app/services/jwt.py:37].\n*   It handles potential decoding errors (`jwt.PyJWTError`) and payload validation errors (`ValidationError`) by raising a `ValueError` [E6, app/services/jwt.py:38, E6, app/services/jwt.py:40].\n\nThe usage of this token checking mechanism on incoming requests is not explicitly shown in the provided source code snippets, but the function `get_username_from_token` [E6, app/services/jwt.py:35] is the mechanism for checking/validating the token.",
+  "citations": {
+    "cited": [
+      "E6"
+    ],
+    "missing": [],
+    "valid": 1,
+    "total": 1
+  },
+  "diagram": null,
+  "rounds": 7,
+  "seconds": 2223.4,
+  "stopped": "answer",
+  "gaps": [],
+  "tools_created": [],
+  "tool_failures": [],
+  "steps": [
+    {
+      "type": "started",
+      "question": "How is the JWT token created, and where is it checked on incoming requests?",
+      "model": "gemma4:e4b",
+      "max_rounds": 12
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 4.3,
+      "tokens": 16,
+      "prompt_tokens": 848,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 1,
+      "tool": "search_code",
+      "args": {
+        "query": "JWT token"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 1,
+      "tool": "search_code",
+      "evidence_id": "E1",
+      "summary": "search_code(query='JWT token'): 35 matches; top: app.services.jwt.create_jwt_token",
+      "ms": 3
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 16.8,
+      "tokens": 25,
+      "prompt_tokens": 1165,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 2,
+      "tool": "read_file",
+      "args": {
+        "path": "app/services/jwt.py",
+        "start": 1
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 2,
+      "tool": "read_file",
+      "evidence_id": "E2",
+      "summary": "read_file(path='app/services/jwt.py', start=1): lines 1-41 of 41",
+      "ms": 0
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 26.2,
+      "tokens": 18,
+      "prompt_tokens": 1786,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 3,
+      "tool": "search_code",
+      "args": {
+        "query": "Depends on JWT token"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 3,
+      "tool": "search_code",
+      "evidence_id": "E3",
+      "summary": "search_code(query='Depends on JWT token'): 17 matches; top: app.services.jwt.create_jwt_token",
+      "ms": 5
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 15.1,
+      "tokens": 19,
+      "prompt_tokens": 2107,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 4,
+      "tool": "search_code",
+      "args": {
+        "query": "Depends on JWT token check"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 4,
+      "tool": "search_code",
+      "evidence_id": "E4",
+      "summary": "search_code(query='Depends on JWT token check'): 25 matches; top: app.services.jwt.create_jwt_token",
+      "ms": 5
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 55.0,
+      "tokens": 20,
+      "prompt_tokens": 2176,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 5,
+      "tool": "search_code",
+      "args": {
+        "query": "Depends on JWT token check endpoint"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 5,
+      "tool": "search_code",
+      "evidence_id": "E5",
+      "summary": "search_code(query='Depends on JWT token check endpoint'): 25 matches; top: app.services.jwt.create_jwt_token",
+      "ms": 5
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 48.5,
+      "tokens": 25,
+      "prompt_tokens": 1953,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 6,
+      "tool": "read_file",
+      "args": {
+        "path": "app/services/jwt.py",
+        "start": 1
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 6,
+      "tool": "read_file",
+      "evidence_id": "E6",
+      "summary": "read_file(path='app/services/jwt.py', start=1): lines 1-41 of 41",
+      "ms": 0
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 1924.1,
+      "tokens": 19,
+      "prompt_tokens": 2320,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 7,
+      "tool": "search_code",
+      "args": {
+        "query": "Depends on JWT token check"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 7,
+      "tool": "search_code",
+      "evidence_id": "E7",
+      "summary": "search_code(query='Depends on JWT token check'): 25 matches; top: app.services.jwt.create_jwt_token",
+      "ms": 3
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 133.3,
+      "tokens": 448,
+      "prompt_tokens": 2389,
+      "done_reason": "stop"
+    },
+    {
+      "type": "answer",
+      "citations": {
+        "cited": [
+          "E6"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "rounds": 7,
+      "diagram": null
+    }
+  ],
+  "evidence": {
+    "E1": {
+      "id": "E1",
+      "tool": "search_code",
+      "args": {
+        "query": "JWT token"
+      },
+      "summary": "search_code(query='JWT token'): 35 matches; top: app.services.jwt.create_jwt_token",
+      "result": {
+        "query": "JWT token",
+        "total": 35,
+        "results": [
+          {
+            "id": "app.services.jwt.create_jwt_token",
+            "kind": "function",
+            "name": "create_jwt_token",
+            "path": "app/services/jwt.py",
+            "line": 15,
+            "score": 60.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_jwt_token",
+            "kind": "function",
+            "name": "test_creating_jwt_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 15,
+            "score": 60.0
+          },
+          {
+            "id": "app.services.jwt.create_access_token_for_user",
+            "kind": "function",
+            "name": "create_access_token_for_user",
+            "path": "app/services/jwt.py",
+            "line": 27,
+            "score": 25.0
+          },
+          {
+            "id": "app.services.jwt.get_username_from_token",
+            "kind": "function",
+            "name": "get_username_from_token",
+            "path": "app/services/jwt.py",
+            "line": 35,
+            "score": 25.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_token_for_user",
+            "kind": "function",
+            "name": "test_creating_token_for_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 26,
+            "score": 25.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_retrieving_token_from_user",
+            "kind": "function",
+            "name": "test_retrieving_token_from_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 33,
+            "score": 25.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token",
+            "kind": "function",
+            "name": "test_error_when_wrong_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 39,
+            "score": 25.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token_shape",
+            "kind": "function",
+            "name": "test_error_when_wrong_token_shape",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 44,
+            "score": 25.0
+          },
+          {
+            "id": "app.models.schemas.jwt",
+            "kind": "module",
+            "name": "app.models.schemas.jwt",
+            "path": "app/models/schemas/jwt.py",
+            "line": 1,
+            "score": 20.0
+          },
+          {
+            "id": "app.models.schemas.jwt.JWTMeta",
+            "kind": "class",
+            "name": "JWTMeta",
+            "path": "app/models/schemas/jwt.py",
+            "line": 6,
+            "score": 20.0
+          }
+        ]
+      }
+    },
+    "E2": {
+      "id": "E2",
+      "tool": "read_file",
+      "args": {
+        "path": "app/services/jwt.py",
+        "start": 1
+      },
+      "summary": "read_file(path='app/services/jwt.py', start=1): lines 1-41 of 41",
+      "result": {
+        "path": "app/services/jwt.py",
+        "start": 1,
+        "end": 41,
+        "total_lines": 41,
+        "content": "   1| from datetime import datetime, timedelta\n   2| from typing import Dict\n   3| \n   4| import jwt\n   5| from pydantic import ValidationError\n   6| \n   7| from app.models.domain.users import User\n   8| from app.models.schemas.jwt import JWTMeta, JWTUser\n   9| \n  10| JWT_SUBJECT = \"access\"\n  11| ALGORITHM = \"HS256\"\n  12| ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # one week\n  13| \n  14| \n  15| def create_jwt_token(\n  16|     *,\n  17|     jwt_content: Dict[str, str],\n  18|     secret_key: str,\n  19|     expires_delta: timedelta,\n  20| ) -> str:\n  21|     to_encode = jwt_content.copy()\n  22|     expire = datetime.utcnow() + expires_delta\n  23|     to_encode.update(JWTMeta(exp=expire, sub=JWT_SUBJECT).dict())\n  24|     return jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)\n  25| \n  26| \n  27| def create_access_token_for_user(user: User, secret_key: str) -> str:\n  28|     return create_jwt_token(\n  29|         jwt_content=JWTUser(username=user.username).dict(),\n  30|         secret_key=secret_key,\n  31|         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),\n  32|     )\n  33| \n  34| \n  35| def get_username_from_token(token: str, secret_key: str) -> str:\n  36|     try:\n  37|         return JWTUser(**jwt.decode(token, secret_key, algorithms=[ALGORITHM])).username\n  38|     except jwt.PyJWTError as decode_error:\n  39|         raise ValueError(\"unable to decode JWT token\") from decode_error\n  40|     except ValidationError as validation_error:\n  41|         raise ValueError(\"malformed payload in token\") from validation_error"
+      }
+    },
+    "E3": {
+      "id": "E3",
+      "tool": "search_code",
+      "args": {
+        "query": "Depends on JWT token"
+      },
+      "summary": "search_code(query='Depends on JWT token'): 17 matches; top: app.services.jwt.create_jwt_token",
+      "result": {
+        "query": "Depends on JWT token",
+        "total": 17,
+        "results": [
+          {
+            "id": "app.services.jwt.create_jwt_token",
+            "kind": "function",
+            "name": "create_jwt_token",
+            "path": "app/services/jwt.py",
+            "line": 15,
+            "score": 20.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_jwt_token",
+            "kind": "function",
+            "name": "test_creating_jwt_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 15,
+            "score": 20.0
+          },
+          {
+            "id": "app.services.jwt.create_access_token_for_user",
+            "kind": "function",
+            "name": "create_access_token_for_user",
+            "path": "app/services/jwt.py",
+            "line": 27,
+            "score": 12.5
+          },
+          {
+            "id": "app.services.jwt.get_username_from_token",
+            "kind": "function",
+            "name": "get_username_from_token",
+            "path": "app/services/jwt.py",
+            "line": 35,
+            "score": 12.5
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_token_for_user",
+            "kind": "function",
+            "name": "test_creating_token_for_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 26,
+            "score": 12.5
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_retrieving_token_from_user",
+            "kind": "function",
+            "name": "test_retrieving_token_from_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 33,
+            "score": 12.5
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token",
+            "kind": "function",
+            "name": "test_error_when_wrong_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 39,
+            "score": 12.5
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token_shape",
+            "kind": "function",
+            "name": "test_error_when_wrong_token_shape",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 44,
+            "score": 12.5
+          },
+          {
+            "id": "app.models.schemas.jwt",
+            "kind": "module",
+            "name": "app.models.schemas.jwt",
+            "path": "app/models/schemas/jwt.py",
+            "line": 1,
+            "score": 10.0
+          },
+          {
+            "id": "app.models.schemas.jwt.JWTMeta",
+            "kind": "class",
+            "name": "JWTMeta",
+            "path": "app/models/schemas/jwt.py",
+            "line": 6,
+            "score": 10.0
+          }
+        ]
+      }
+    },
+    "E4": {
+      "id": "E4",
+      "tool": "search_code",
+      "args": {
+        "query": "Depends on JWT token check"
+      },
+      "summary": "search_code(query='Depends on JWT token check'): 25 matches; top: app.services.jwt.create_jwt_token",
+      "result": {
+        "query": "Depends on JWT token check",
+        "total": 25,
+        "results": [
+          {
+            "id": "app.services.jwt.create_jwt_token",
+            "kind": "function",
+            "name": "create_jwt_token",
+            "path": "app/services/jwt.py",
+            "line": 15,
+            "score": 16.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_jwt_token",
+            "kind": "function",
+            "name": "test_creating_jwt_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 15,
+            "score": 16.0
+          },
+          {
+            "id": "app.services.jwt.create_access_token_for_user",
+            "kind": "function",
+            "name": "create_access_token_for_user",
+            "path": "app/services/jwt.py",
+            "line": 27,
+            "score": 10.0
+          },
+          {
+            "id": "app.services.jwt.get_username_from_token",
+            "kind": "function",
+            "name": "get_username_from_token",
+            "path": "app/services/jwt.py",
+            "line": 35,
+            "score": 10.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_token_for_user",
+            "kind": "function",
+            "name": "test_creating_token_for_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 26,
+            "score": 10.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_retrieving_token_from_user",
+            "kind": "function",
+            "name": "test_retrieving_token_from_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 33,
+            "score": 10.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token",
+            "kind": "function",
+            "name": "test_error_when_wrong_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 39,
+            "score": 10.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token_shape",
+            "kind": "function",
+            "name": "test_error_when_wrong_token_shape",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 44,
+            "score": 10.0
+          },
+          {
+            "id": "app.api.dependencies.articles.check_article_modification_permissions",
+            "kind": "function",
+            "name": "check_article_modification_permissions",
+            "path": "app/api/dependencies/articles.py",
+            "line": 51,
+            "score": 8.0
+          },
+          {
+            "id": "app.api.dependencies.comments.check_comment_modification_permissions",
+            "kind": "function",
+            "name": "check_comment_modification_permissions",
+            "path": "app/api/dependencies/comments.py",
+            "line": 39,
+            "score": 8.0
+          }
+        ]
+      }
+    },
+    "E5": {
+      "id": "E5",
+      "tool": "search_code",
+      "args": {
+        "query": "Depends on JWT token check endpoint"
+      },
+      "summary": "search_code(query='Depends on JWT token check endpoint'): 25 matches; top: app.services.jwt.create_jwt_token",
+      "result": {
+        "query": "Depends on JWT token check endpoint",
+        "total": 25,
+        "results": [
+          {
+            "id": "app.services.jwt.create_jwt_token",
+            "kind": "function",
+            "name": "create_jwt_token",
+            "path": "app/services/jwt.py",
+            "line": 15,
+            "score": 13.3
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_jwt_token",
+            "kind": "function",
+            "name": "test_creating_jwt_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 15,
+            "score": 13.3
+          },
+          {
+            "id": "app.services.jwt.create_access_token_for_user",
+            "kind": "function",
+            "name": "create_access_token_for_user",
+            "path": "app/services/jwt.py",
+            "line": 27,
+            "score": 8.3
+          },
+          {
+            "id": "app.services.jwt.get_username_from_token",
+            "kind": "function",
+            "name": "get_username_from_token",
+            "path": "app/services/jwt.py",
+            "line": 35,
+            "score": 8.3
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_token_for_user",
+            "kind": "function",
+            "name": "test_creating_token_for_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 26,
+            "score": 8.3
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_retrieving_token_from_user",
+            "kind": "function",
+            "name": "test_retrieving_token_from_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 33,
+            "score": 8.3
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token",
+            "kind": "function",
+            "name": "test_error_when_wrong_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 39,
+            "score": 8.3
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token_shape",
+            "kind": "function",
+            "name": "test_error_when_wrong_token_shape",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 44,
+            "score": 8.3
+          },
+          {
+            "id": "app.api.dependencies.articles.check_article_modification_permissions",
+            "kind": "function",
+            "name": "check_article_modification_permissions",
+            "path": "app/api/dependencies/articles.py",
+            "line": 51,
+            "score": 6.7
+          },
+          {
+            "id": "app.api.dependencies.comments.check_comment_modification_permissions",
+            "kind": "function",
+            "name": "check_comment_modification_permissions",
+            "path": "app/api/dependencies/comments.py",
+            "line": 39,
+            "score": 6.7
+          }
+        ]
+      }
+    },
+    "E6": {
+      "id": "E6",
+      "tool": "read_file",
+      "args": {
+        "path": "app/services/jwt.py",
+        "start": 1
+      },
+      "summary": "read_file(path='app/services/jwt.py', start=1): lines 1-41 of 41",
+      "result": {
+        "path": "app/services/jwt.py",
+        "start": 1,
+        "end": 41,
+        "total_lines": 41,
+        "content": "   1| from datetime import datetime, timedelta\n   2| from typing import Dict\n   3| \n   4| import jwt\n   5| from pydantic import ValidationError\n   6| \n   7| from app.models.domain.users import User\n   8| from app.models.schemas.jwt import JWTMeta, JWTUser\n   9| \n  10| JWT_SUBJECT = \"access\"\n  11| ALGORITHM = \"HS256\"\n  12| ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # one week\n  13| \n  14| \n  15| def create_jwt_token(\n  16|     *,\n  17|     jwt_content: Dict[str, str],\n  18|     secret_key: str,\n  19|     expires_delta: timedelta,\n  20| ) -> str:\n  21|     to_encode = jwt_content.copy()\n  22|     expire = datetime.utcnow() + expires_delta\n  23|     to_encode.update(JWTMeta(exp=expire, sub=JWT_SUBJECT).dict())\n  24|     return jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)\n  25| \n  26| \n  27| def create_access_token_for_user(user: User, secret_key: str) -> str:\n  28|     return create_jwt_token(\n  29|         jwt_content=JWTUser(username=user.username).dict(),\n  30|         secret_key=secret_key,\n  31|         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),\n  32|     )\n  33| \n  34| \n  35| def get_username_from_token(token: str, secret_key: str) -> str:\n  36|     try:\n  37|         return JWTUser(**jwt.decode(token, secret_key, algorithms=[ALGORITHM])).username\n  38|     except jwt.PyJWTError as decode_error:\n  39|         raise ValueError(\"unable to decode JWT token\") from decode_error\n  40|     except ValidationError as validation_error:\n  41|         raise ValueError(\"malformed payload in token\") from validation_error"
+      }
+    },
+    "E7": {
+      "id": "E7",
+      "tool": "search_code",
+      "args": {
+        "query": "Depends on JWT token check"
+      },
+      "summary": "search_code(query='Depends on JWT token check'): 25 matches; top: app.services.jwt.create_jwt_token",
+      "result": {
+        "query": "Depends on JWT token check",
+        "total": 25,
+        "results": [
+          {
+            "id": "app.services.jwt.create_jwt_token",
+            "kind": "function",
+            "name": "create_jwt_token",
+            "path": "app/services/jwt.py",
+            "line": 15,
+            "score": 16.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_jwt_token",
+            "kind": "function",
+            "name": "test_creating_jwt_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 15,
+            "score": 16.0
+          },
+          {
+            "id": "app.services.jwt.create_access_token_for_user",
+            "kind": "function",
+            "name": "create_access_token_for_user",
+            "path": "app/services/jwt.py",
+            "line": 27,
+            "score": 10.0
+          },
+          {
+            "id": "app.services.jwt.get_username_from_token",
+            "kind": "function",
+            "name": "get_username_from_token",
+            "path": "app/services/jwt.py",
+            "line": 35,
+            "score": 10.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_creating_token_for_user",
+            "kind": "function",
+            "name": "test_creating_token_for_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 26,
+            "score": 10.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_retrieving_token_from_user",
+            "kind": "function",
+            "name": "test_retrieving_token_from_user",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 33,
+            "score": 10.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token",
+            "kind": "function",
+            "name": "test_error_when_wrong_token",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 39,
+            "score": 10.0
+          },
+          {
+            "id": "tests.test_services.test_jwt.test_error_when_wrong_token_shape",
+            "kind": "function",
+            "name": "test_error_when_wrong_token_shape",
+            "path": "tests/test_services/test_jwt.py",
+            "line": 44,
+            "score": 10.0
+          },
+          {
+            "id": "app.api.dependencies.articles.check_article_modification_permissions",
+            "kind": "function",
+            "name": "check_article_modification_permissions",
+            "path": "app/api/dependencies/articles.py",
+            "line": 51,
+            "score": 8.0
+          },
+          {
+            "id": "app.api.dependencies.comments.check_comment_modification_permissions",
+            "kind": "function",
+            "name": "check_comment_modification_permissions",
+            "path": "app/api/dependencies/comments.py",
+            "line": 39,
+            "score": 8.0
+          }
+        ]
+      }
+    }
+  }
+}
