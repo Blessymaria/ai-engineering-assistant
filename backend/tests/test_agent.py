@@ -83,6 +83,20 @@ def test_parse_capability_gap():
     assert "needs" in parse_reply(incomplete, TOOLS).error
 
 
+def test_ollama_sets_context_window_and_caps(monkeypatch):
+    from app.llm.ollama import DEFAULT_NUM_CTX, OllamaProvider
+    sent = {}
+
+    def fake_post(self, body):
+        sent.update(body)
+        return {"message": {"content": "hi"}, "eval_count": 1, "prompt_eval_count": 50}
+
+    monkeypatch.setattr(OllamaProvider, "_post", fake_post)
+    reply = OllamaProvider(model="m").chat([{"role": "user", "content": "q"}], max_tokens=64)
+    assert sent["options"] == {"temperature": 0, "num_predict": 64, "num_ctx": DEFAULT_NUM_CTX}
+    assert reply.prompt_tokens == 50
+
+
 # --- evidence ---------------------------------------------------------------
 
 def test_compact_graph_result_is_short_and_keeps_status(repo):

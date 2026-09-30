@@ -24,7 +24,7 @@ from app.llm.ollama import OllamaProvider  # noqa: E402
 from app.toolfactory.factory import make_factory  # noqa: E402
 from app.tools.repo import LoadedRepo  # noqa: E402
 
-RESULTS = EVAL / "results"
+RESULTS = EVAL / "results"  # overridden by --out
 
 
 def git_head(path: Path) -> str:
@@ -36,7 +36,10 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", help="comma-separated question ids")
     parser.add_argument("--graph", type=Path)
+    parser.add_argument("--out", type=Path, help="results folder (default eval/results)")
     opts = parser.parse_args()
+    global RESULTS
+    RESULTS = opts.out or RESULTS
 
     questions = json.loads((EVAL / "questions.json").read_text(encoding="utf-8"))
     if opts.only:

@@ -10,6 +10,9 @@ from app.llm.base import LLMError, LLMReply, ToolCallRequest
 
 DEFAULT_MODEL = "gemma4:e4b"
 DEFAULT_URL = "http://localhost:11434"
+# Ollama's default context here is 4096 tokens, and longer prompts are cut from the START
+# (system prompt and question first), silently. The agent's conversation often exceeds that.
+DEFAULT_NUM_CTX = 16384
 
 
 class OllamaProvider:
@@ -17,6 +20,7 @@ class OllamaProvider:
         self.name = model or os.environ.get("OLLAMA_MODEL", DEFAULT_MODEL)
         self.base_url = (base_url or os.environ.get("OLLAMA_URL", DEFAULT_URL)).rstrip("/")
         self.timeout = timeout
+        self.num_ctx = int(os.environ.get("OLLAMA_NUM_CTX", DEFAULT_NUM_CTX))
         self._think_supported = True
 
     def _post(self, body: dict) -> dict:
@@ -33,7 +37,7 @@ class OllamaProvider:
             "messages": messages,
             "stream": False,
             # Temperature 0 for repeatable runs; a hard cap because small models can loop (see DEVLOG).
-            "options": {"temperature": 0, "num_predict": max_tokens},
+            "options": {"temperature": 0, "num_predict": max_tokens, "num_ctx": self.num_ctx},
         }
         if tools:
             body["tools"] = tools
@@ -70,6 +74,7 @@ class OllamaProvider:
             content=message.get("content", "") or "",
             tool_calls=calls,
             tokens=data.get("eval_count", 0),
+            prompt_tokens=data.get("prompt_eval_count", 0),
             seconds=round(time.perf_counter() - start, 1),
             done_reason=data.get("done_reason"),
         )

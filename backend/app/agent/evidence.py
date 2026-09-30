@@ -6,9 +6,9 @@ from dataclasses import dataclass
 
 MAX_SEARCH_ITEMS = 8
 MAX_GRAPH_ITEMS = 25
-MAX_FILE_LINES = 60
+MAX_FILE_LINES = 120  # same as read_file, so nothing it returned is hidden from the model
 MAX_LIST_ENTRIES = 60
-MAX_CHARS = 3500
+MAX_CHARS = 8000
 CITATION_GROUP_RE = re.compile(r"\[([^\[\]]*)\]")
 EVIDENCE_ID_RE = re.compile(r"\bE\d+\b")
 

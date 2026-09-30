@@ -69,12 +69,19 @@ repository, such as the agent's example.
 Example tool body (counts functions per file, input {{"limit": 5}}):
 {example_body}
 
+Real functions in THIS repository (example_input must use one of these, not a placeholder):
+{real_names}
+
 Reply with JSON: name (snake_case), description (one line), input_schema (JSON schema with "properties"),
 example_input (an object that works on THIS repository), code (the body only)."""
 
 RETRY = """That tool did not pass validation:
 {errors}
+The test runs your code on example_input, so example_input must name something real, e.g. one of:
+{real_names}
 Fix it and reply with the full JSON again (name, description, input_schema, example_input, code)."""
+
+MIN_NAME_LEN = 4  # shorter names ("get", "run") match too many words in the agent's example
 
 
 @dataclass
@@ -190,11 +197,28 @@ class ToolFactory:
                              example, outcome.result, self.runner, self.ctx)
         return tool, [], test
 
+    def real_names(self, gap: CapabilityGap, limit: int = 8) -> str:
+        """Real functions to use as test input: ones the agent mentioned first, then a spread of others.
+
+        Small models otherwise invent placeholders ("some_function"), and the test run then fails.
+        """
+        nodes = [n for n in self.ctx.list_nodes("function")
+                 if n.get("name") and n.get("path") and not n["name"].startswith("__")]
+        hint = f"{gap.example_input} {gap.missing_capability}".lower()
+        mentioned = sorted((n for n in nodes if len(n["name"]) >= MIN_NAME_LEN and n["name"].lower() in hint),
+                           key=lambda n: (-len(n["name"]), n["path"].startswith("tests/")))
+        others = [n for n in nodes if n not in mentioned and not n["path"].startswith("tests/")]
+        step = max(1, len(others) // limit)
+        picked = (mentioned[:3] + others[::step])[:limit]
+        return "\n".join(f"- {n['name']} ({n['path']}:{n['line']}-{n['end']})" for n in picked) or "- (none)"
+
     def create(self, gap: CapabilityGap) -> CreationResult:
         start = time.perf_counter()
+        real_names = self.real_names(gap)
         messages = [{"role": "user", "content": PROMPT.format(
             missing=gap.missing_capability, reason=gap.reason, example=gap.example_input,
-            imports=", ".join(sorted(ALLOWED_IMPORTS)), example_body=textwrap.indent(EXAMPLE_BODY, "    "))}]
+            imports=", ".join(sorted(ALLOWED_IMPORTS)), example_body=textwrap.indent(EXAMPLE_BODY, "    "),
+            real_names=real_names)}]
         attempts: list[dict] = []
         tool = None
         for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -212,7 +236,8 @@ class ToolFactory:
             if tool:
                 break
             messages += [{"role": "assistant", "content": reply.content},
-                         {"role": "user", "content": RETRY.format(errors="\n".join(f"- {e}" for e in errors))}]
+                         {"role": "user", "content": RETRY.format(errors="\n".join(f"- {e}" for e in errors),
+                                                                  real_names=real_names)}]
         if tool:
             self.created[tool.name] = tool
         audit = self._save_audit(gap, attempts, tool)

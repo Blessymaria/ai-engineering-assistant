@@ -20,6 +20,7 @@ class LLMReply:
     tool_calls: list[ToolCallRequest] = field(default_factory=list)
     tokens: int = 0
     seconds: float = 0.0
+    prompt_tokens: int = 0  # how much of the prompt the model processed (for spotting context limits)
     done_reason: str | None = None  # "stop", or "length" when the reply was cut off
 
 

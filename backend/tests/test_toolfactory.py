@@ -167,12 +167,22 @@ def test_factory_creates_and_registers_tool(repo, tmp_path):
     assert saved["created"] and (result.audit_dir / "tool.py").exists()
 
 
+def test_prompt_lists_real_names_mentioned_first(repo, tmp_path):
+    llm = FakeLLM([spec()])
+    factory = ToolFactory(llm, FakeRunner([RunResult(True, {"ok": 1})]), ToolContext(repo), tmp_path)
+    names = factory.real_names(GAP)  # GAP.example_input is "create_order"
+    assert names.splitlines()[0] == "- create_order (shop/services/orders.py:12-18)"
+    factory.create(GAP)
+    assert "- create_order (shop/services/orders.py:12-18)" in llm.calls[0]["messages"][0]["content"]
+
+
 def test_factory_retries_once_with_errors(repo, tmp_path):
     llm = FakeLLM([spec(code="import os\nreturn {}"), spec()])
     runner = FakeRunner([RunResult(True, {"ok": 1})])
     result = ToolFactory(llm, runner, ToolContext(repo), tmp_path).create(GAP)
     assert result.tool is not None and len(result.attempts) == 2
     assert "import of 'os'" in llm.calls[1]["messages"][-1]["content"]
+    assert "create_order (shop/services/orders.py" in llm.calls[1]["messages"][-1]["content"]
     assert len(runner.runs) == 1  # the unsafe version was never run
 
 

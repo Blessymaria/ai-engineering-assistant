@@ -47,7 +47,7 @@ CORE_TOOLS = {
         ),
         ToolSpec(
             "read_file",
-            "Read numbered source lines of a repository file (max 200 lines per call).",
+            "Read numbered source lines of a repository file (max 120 lines per call; pass start to read further).",
             _schema({"path": {"type": "string"}, "start": {"type": "integer"}, "end": {"type": "integer"}}, ["path"]),
             read_file,
         ),

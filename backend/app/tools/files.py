@@ -3,7 +3,7 @@
 from app.ingest.paths import PathError, resolve_inside
 from app.tools.repo import LoadedRepo, ToolError, normalise_path
 
-MAX_LINES = 200
+MAX_LINES = 120  # the model sees the whole window (see agent/evidence.py)
 MAX_ENTRIES = 200
 MAX_DEPTH = 5
 

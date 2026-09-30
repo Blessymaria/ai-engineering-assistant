@@ -137,7 +137,8 @@ class Agent:
                 self._emit("limit_reached", rounds=rounds)
                 messages.append({"role": "user", "content": LIMIT_REACHED})
             reply = self.llm.chat(messages, tools=None if forced else tools, max_tokens=MAX_TOKENS)
-            self._emit("llm_reply", seconds=reply.seconds, tokens=reply.tokens, done_reason=reply.done_reason)
+            self._emit("llm_reply", seconds=reply.seconds, tokens=reply.tokens, prompt_tokens=reply.prompt_tokens,
+                       done_reason=reply.done_reason)
 
             action = FinalAnswer(reply.content.strip()) if forced else parse_reply(reply, tool_names)
             if isinstance(action, FinalAnswer) and not forced and not store.items and not gaps and not nudged:
