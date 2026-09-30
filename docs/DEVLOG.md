@@ -123,4 +123,20 @@
 - Issues / next:
   - The pipeline itself works every time (gap -> generated -> static check -> container test -> registered -> used), but gemma4:e4b's tool logic varies run to run. Test runs still pass on made-up example inputs when the tool returns a "not found" status instead of an error (`some_function_name`). Possible later improvement: run the test on the agent's own example input.
   - Tool creation takes 40-240 s on CPU; a question with a gap takes 2-6 minutes.
+  - Breeze re-index at this milestone built fine (51 files, 128 functions, 37 classes) but the upload returned HTTP 409 "Duplicate entry": the indexer cannot replace an existing repository. The old one must be deleted in the Breeze UI (code-ontology page) before each re-upload.
   - Next: phase 6, the UI.
+
+## 2026-09-30 — Phase 6: single-screen UI
+- Changes: `backend/app/api/routes.py` (`GET/POST /api/repo`, error safety in the stream), `backend/app/agent/diagram.py`, `backend/app/agent/{loop,prompts}.py`, `backend/tests/test_ui_api.py`; `frontend/src/{App,api,events,types}.ts(x)`, `frontend/src/components/{RepoBar,Chat,Activity,Detail,Markdown,Mermaid}.tsx`, `frontend/src/index.css`; packages `react-markdown`, `remark-gfm`, `mermaid`.
+- Decisions:
+  - **Mermaid diagrams are built in code** from the query_graph evidence the agent visited (solid = resolved, dashed = ambiguous/unresolved, library calls left out), instead of asking the model: gemma4:e4b never produced one in phase 4, and this guarantees only visited nodes appear (plan section 7). Model-written Mermaid blocks still render. The prompt no longer asks for diagrams, which also shortens the slowest step (the final answer).
+  - The browser parses the SSE stream from `POST /api/ask` itself (EventSource only supports GET). Events are folded into activity steps by a pure reducer (`events.ts`); model time is attached to the step it produced.
+  - Citations `[E3, file:line]` become links that open the full evidence; steps open their full result, or a created tool's code and test run. The activity panel shows actions only, no model reasoning.
+  - `POST /api/repo` builds the graph synchronously (~5 s for the demo) with a spinner, rather than progress events.
+  - Each question is independent (no conversation memory), matching the plan's one-question-at-a-time loop.
+  - Plain CSS; no UI framework. The Mermaid bundle is large (build warns about >500 kB chunks); acceptable for a local app.
+- Verified: `pytest` 138 passed, 1 skipped; `npm run build` and `npm run lint` clean. Through the Vite dev server: page and `/api/repo` load; a real question streamed through the proxy with events arriving live (+48 s, +70 s, +78 s, answer at +122 s), 3/3 citations valid.
+- Issues / next:
+  - In that run the model queried `callers` of `login` when asked what it calls, so the answer missed the calls and no diagram was drawn (nothing to draw). Model weakness to record in the evaluation.
+  - `npm audit` reports `lodash-es` (via mermaid) advisories for `_.template`/`_.unset`, which this app never calls with untrusted input; the offered fix is a breaking forced downgrade, so not applied.
+  - Next: phase 7, evaluation (8 questions) and README.
