@@ -22,7 +22,9 @@ MAX_CREATED_TOOLS = 2  # per question; tool creation is slow on a local model
 
 @dataclass
 class Event:
-    type: str  # started | llm_reply | tool_called | tool_result | tool_error | gap_detected | invalid_action | limit_reached | answer
+    # started | llm_reply | tool_called | tool_result | tool_error | gap_detected | tool_generation_started |
+    # tool_created | tool_failed | invalid_action | limit_reached | cancelled | answer
+    type: str
     data: dict
     t: float = field(default_factory=time.time)
 
@@ -33,7 +35,7 @@ class AgentResult:
     citations: dict
     evidence: EvidenceStore
     rounds: int
-    stopped: str  # "answer" | "limit"
+    stopped: str  # "answer" | "limit" | "cancelled"
     gaps: list[CapabilityGap]
     events: list[Event]
     seconds: float
@@ -64,11 +66,13 @@ def _call_message(name: str, args: dict) -> dict:
 
 class Agent:
     def __init__(self, repo: LoadedRepo, llm: LLMProvider, max_rounds: int = MAX_ROUNDS,
-                 on_event: Callable[[Event], None] | None = None, tool_factory=None):
+                 on_event: Callable[[Event], None] | None = None, tool_factory=None,
+                 should_stop: Callable[[], bool] | None = None):
         self.repo = repo
         self.llm = llm
         self.max_rounds = max_rounds
         self.on_event = on_event
+        self.should_stop = should_stop or (lambda: False)
         self.tool_factory = tool_factory  # app.toolfactory.factory.ToolFactory, or None to disable
         self.generated: dict = {}  # name -> GeneratedTool, for this session
         self.events: list[Event] = []
@@ -129,6 +133,11 @@ class Agent:
         self._emit("started", question=question, model=self.llm.name, max_rounds=self.max_rounds)
 
         while True:
+            if self.should_stop():
+                # Checked between steps: a model call already running finishes first (up to ~1 minute).
+                self._emit("cancelled", rounds=rounds)
+                return AgentResult("", check_citations("", store), store, rounds, "cancelled", gaps, self.events,
+                                   round(time.perf_counter() - start, 1))
             tools = tool_schemas() + [t.schema() for t in self.generated.values()]
             tool_names = set(CORE_TOOLS) | set(self.generated)
             forced = rounds >= self.max_rounds

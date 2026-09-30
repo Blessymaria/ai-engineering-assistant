@@ -38,6 +38,7 @@ def main() -> None:
     parser.add_argument("--only", help="comma-separated question ids")
     parser.add_argument("--graph", type=Path)
     parser.add_argument("--out", type=Path, help="results folder (default eval/results)")
+    parser.add_argument("--runs", type=int, help="runs per question (overrides questions.json)")
     opts = parser.parse_args()
     global RESULTS
     RESULTS = opts.out or RESULTS
@@ -57,7 +58,7 @@ def main() -> None:
     summary = {"context": context, "runs": []}
 
     for q in questions:
-        for run in range(1, q.get("runs", 1) + 1):
+        for run in range(1, (opts.runs or q.get("runs", 1)) + 1):
             print(f"== {q['id']} run {run}: {q['question']}", flush=True)
             factory = make_factory(repo, llm, DEFAULT_WORKSPACE)  # fresh per run: no tools carried over
             agent = Agent(repo, llm, tool_factory=factory)

@@ -73,12 +73,26 @@ def test_get_repo_summary(repo, monkeypatch):
 
 def test_load_repo_builds_saves_and_switches(tmp_path, monkeypatch):
     monkeypatch.setattr(routes, "DEFAULT_WORKSPACE", tmp_path)
+    monkeypatch.setenv("AIEA_ALLOWED_ROOTS", str(FIXTURE.parent))
     monkeypatch.setattr(routes, "_state", {"repo": None})
     response = TestClient(app).post("/api/repo", json={"source": str(FIXTURE)})
     assert response.status_code == 200
     assert response.json()["kinds"]["function"] > 5
     assert list((tmp_path / "graphs").glob("*.json"))
     assert routes._state["repo"].root == FIXTURE.resolve()
+
+
+def test_load_repo_refuses_local_folders_outside_allowed_roots(tmp_path, monkeypatch):
+    monkeypatch.setattr(routes, "DEFAULT_WORKSPACE", tmp_path / "ws")
+    monkeypatch.setenv("AIEA_ALLOWED_ROOTS", str(tmp_path / "allowed"))
+    response = TestClient(app).post("/api/repo", json={"source": str(FIXTURE)})
+    assert response.status_code == 403 and "must be inside" in response.json()["detail"]
+
+
+def test_allowed_roots_default_to_workspace_and_desktop(monkeypatch):
+    monkeypatch.delenv("AIEA_ALLOWED_ROOTS", raising=False)
+    roots = routes.allowed_roots()
+    assert routes.DEFAULT_WORKSPACE.resolve() in roots and (Path.home() / "Desktop").resolve() in roots
 
 
 @pytest.mark.parametrize("source, status", [(" ", 422), ("ftp://nope", 400)])

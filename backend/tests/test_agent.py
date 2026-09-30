@@ -191,6 +191,25 @@ def test_round_limit_forces_an_answer_without_tools(repo):
     assert any(e.type == "limit_reached" for e in result.events)
 
 
+def test_agent_stops_between_steps_when_cancelled(repo):
+    llm = FakeLLM([call("list_files"), call("list_files"), text("never reached")])
+    checks = iter([False, True])  # allow the first step, then cancel
+    result = Agent(repo, llm, should_stop=lambda: next(checks)).run("q")
+    assert result.stopped == "cancelled" and result.rounds == 1 and result.answer == ""
+    assert result.events[-1].type == "cancelled"
+    assert len(llm.calls) == 1  # no further model calls after cancelling
+
+
+def test_cancel_endpoint(monkeypatch):
+    import threading
+    flag = threading.Event()
+    monkeypatch.setattr(routes, "_runs", {"abc123": flag})
+    client = TestClient(app)
+    assert client.post("/api/ask/abc123/cancel").json() == {"cancelled": "abc123"}
+    assert flag.is_set()
+    assert client.post("/api/ask/nope/cancel").status_code == 404
+
+
 def test_old_results_shrink_to_summaries(repo):
     llm = FakeLLM([call("list_files")] * 5 + [text("ok [E5]")])
     Agent(repo, llm).run("q")
@@ -211,7 +230,7 @@ def test_ask_streams_events(repo, monkeypatch):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
     events = [line.removeprefix("event: ") for line in response.text.splitlines() if line.startswith("event: ")]
-    assert events[0] == "started" and events[-1] == "done"
+    assert events[:2] == ["run", "started"] and events[-1] == "done"
     assert "answer" in events and "tool_result" in events
     done = json.loads(response.text.strip().splitlines()[-1].removeprefix("data: "))
     assert done["evidence"]["E1"]["tool"] == "search_code"

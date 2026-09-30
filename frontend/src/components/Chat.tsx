@@ -10,12 +10,14 @@ interface Props {
   onAsk: (question: string) => void
   onSelect: (turnId: number) => void
   onCitation: (turn: Turn, evidenceId: string) => void
+  onStop: (turn: Turn) => void
 }
 
-export default function Chat({ turns, selected, canAsk, onAsk, onSelect, onCitation }: Props) {
+export default function Chat({ turns, selected, canAsk, onAsk, onSelect, onCitation, onStop }: Props) {
   const [question, setQuestion] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
-  const busy = turns.some((t) => t.running)
+  const running = turns.find((t) => t.running)
+  const busy = Boolean(running)
 
   useEffect(() => {
     // Braces matter: newer browsers return a Promise from scrollIntoView, and an effect must not return one
@@ -48,7 +50,12 @@ export default function Chat({ turns, selected, canAsk, onAsk, onSelect, onCitat
                 </details>
               )}
               {turn.error && <div className="bad">Error: {turn.error}</div>}
-              {turn.running && !turn.answer && <div className="muted">Working... see the activity panel.</div>}
+              {turn.cancelled && <div className="muted">Stopped before an answer was written.</div>}
+              {turn.running && !turn.answer && (
+                <div className="muted">
+                  {turn.stopping ? 'Stopping after the current step...' : 'Working... see the activity panel.'}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -69,9 +76,16 @@ export default function Chat({ turns, selected, canAsk, onAsk, onSelect, onCitat
           placeholder={canAsk ? 'Ask a question about the repository...' : 'Load a repository first'}
           disabled={busy || !canAsk}
         />
-        <button type="submit" disabled={busy || !canAsk || !question.trim()}>
-          {busy ? 'Working...' : 'Ask'}
-        </button>
+        {running ? (
+          <button type="button" className="secondary" disabled={!running.runId || running.stopping}
+                  onClick={() => onStop(running)}>
+            {running.stopping ? 'Stopping...' : 'Stop'}
+          </button>
+        ) : (
+          <button type="submit" disabled={!canAsk || !question.trim()}>
+            Ask
+          </button>
+        )}
       </form>
     </section>
   )

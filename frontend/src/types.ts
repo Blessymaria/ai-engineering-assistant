@@ -54,6 +54,9 @@ export interface Turn {
   rounds?: number
   // Model time since the last step; attached to the next step that appears
   pendingModelSeconds?: number
+  runId?: string // backend id, used to cancel
+  stopping?: boolean
+  cancelled?: boolean
 }
 
 export interface DetailView {

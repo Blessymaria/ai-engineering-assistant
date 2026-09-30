@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getRepo, loadRepo, streamAsk } from './api'
+import { cancelRun, getRepo, loadRepo, streamAsk } from './api'
 import Activity from './components/Activity'
 import Chat from './components/Chat'
 import Detail from './components/Detail'
@@ -58,6 +58,16 @@ export default function App() {
     update((t) => (t.running ? { ...t, running: false } : t))
   }
 
+  const onStop = async (turn: Turn) => {
+    if (!turn.runId) return
+    setTurns((prev) => prev.map((t) => (t.id === turn.id ? { ...t, stopping: true } : t)))
+    try {
+      await cancelRun(turn.runId)
+    } catch (err) {
+      setTurns((prev) => prev.map((t) => (t.id === turn.id ? { ...t, stopping: false, error: (err as Error).message } : t)))
+    }
+  }
+
   const openEvidence = useCallback((turn: Turn, evidenceId: string) => {
     const ev = turn.evidence[evidenceId]
     if (ev) setDetail(evidenceView(ev))
@@ -89,6 +99,7 @@ export default function App() {
           onAsk={onAsk}
           onSelect={setSelected}
           onCitation={openEvidence}
+          onStop={onStop}
         />
         <Activity turn={current} onOpen={(step) => current && openStep(current, step)} />
       </main>

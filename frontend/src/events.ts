@@ -26,6 +26,10 @@ export function applyEvent(turn: Turn, event: AgentEvent): Turn {
   })
 
   switch (event.type) {
+    case 'run':
+      return { ...turn, runId: String(d.run_id) }
+    case 'cancelled':
+      return { ...add({ kind: 'limit', status: 'warn', title: `Stopped after ${d.rounds} tool rounds` }), cancelled: true }
     case 'llm_reply':
       return { ...turn, pendingModelSeconds: (turn.pendingModelSeconds ?? 0) + Number(d.seconds ?? 0) }
     case 'tool_called':

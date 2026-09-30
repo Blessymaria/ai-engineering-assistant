@@ -26,6 +26,11 @@ export async function loadRepo(source: string): Promise<RepoSummary> {
   return res.json()
 }
 
+export async function cancelRun(runId: string): Promise<void> {
+  const res = await fetch(`/api/ask/${encodeURIComponent(runId)}/cancel`, { method: 'POST' })
+  if (!res.ok && res.status !== 404) throw new Error(await errorText(res)) // 404: already finished
+}
+
 export type AgentEvent = { type: string; data: Record<string, unknown> }
 
 /** POST a question and call onEvent for each Server-Sent Event.
