@@ -17,7 +17,10 @@ export default function Chat({ turns, selected, canAsk, onAsk, onSelect, onCitat
   const endRef = useRef<HTMLDivElement>(null)
   const busy = turns.some((t) => t.running)
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), [turns])
+  useEffect(() => {
+    // Braces matter: newer browsers return a Promise from scrollIntoView, and an effect must not return one
+    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [turns])
 
   return (
     <section className="chat">
