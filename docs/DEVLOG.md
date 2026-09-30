@@ -156,3 +156,16 @@
 - Issues / next:
   - Not fixed: generated tool logic varies (2/3 git-history tools used the file's last commit instead of the function's lines); no citations on overview questions; flow answers stop short; runtime-only questions never get the "cannot be known statically" explanation.
   - Twice a single model call stalled for ~30 minutes while the laptop was unattended (power saving); the runner now records a failed question and continues.
+
+## 2026-09-30 — Final review: audit, improvements, evaluation rounds 4-6
+- Changes: `backend/app/api/routes.py` (cancel endpoint, allowed roots), `backend/app/agent/{loop,evidence,prompts}.py`, `backend/app/toolfactory/factory.py`, `frontend/src/` (Stop button), tests; `README.md` (deviations from the plan, security notes), `eval/RESULTS.md`, `eval/results/round{4,5,6}/`, `eval/results/generated-tools/`, `.repoignore`. Outside the repo: `breeze-onboard.sh` (TypeScript parser fix).
+- Decisions (the user chose which improvements to make after an audit against the brief):
+  - **Stop:** `POST /api/ask/{run_id}/cancel` and a Stop button; closing the stream also cancels; the agent stops between steps (`c3bae7c`).
+  - **Allowed roots:** the UI can load local folders only under `AIEA_ALLOWED_ROOTS` (default `workspace/` and the Desktop), since the API has no login.
+  - **Citation check:** an answer with no citations, or citing unknown ids, goes back once for a rewrite; citation counts stay measured on the model's text (`bcdbf97`).
+  - **Unconfirmed calls:** ambiguous/unresolved calls the agent visited are listed under the answer, built from evidence.
+  - **Prompts:** runtime state vs repository gap separated explicitly (`edf38a3`, after the round 5 regression); "only name files seen in tool results"; tool writer told to scope per-symbol work to the symbol's lines.
+  - Every generated tool from the evaluation is now kept in the repository with its validation record; Ollama version corrected to 0.35.0 for the evaluation (it auto-updated at 11:19 on 30 Sep).
+  - Breeze: the TypeScript parser failed on its own outdated CA list (not the company proxy); `SSL_CERT_FILE` pointed at Ubuntu's bundle fixes it.
+- Verified: `pytest` 149 passed, 1 skipped; frontend build and lint clean. Round 4 (Q4 ×3): 0/3 invented, 0/3 correct framing. Round 5 (all, Q4/Q8 ×3): every Q1-Q7 answer cited; Q8 gap reported 0/3 (regression). Round 6 (Q8 ×3, Q4 ×3): gap 3/3, tool 3/3, correct 1/3; Q4 0/3 invented. Details in `eval/RESULTS.md`.
+- Issues / next: prompt tuning stopped, since each change traded one small-model behaviour for another (round 5). Remaining limitations: tool logic and tool use vary; runtime questions are not framed as "cannot be known"; one invented folder name in the structure answer. Single model calls stalled for 23 min to 2.5 h while the laptop was unattended.

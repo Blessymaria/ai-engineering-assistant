@@ -13,6 +13,8 @@ Eight questions on [fastapi-realworld-example-app](https://github.com/nsidnev/fa
 | Round 2 | assistant @ `4c5d0a2` (three fixes found by round 1), run 2026-09-30 12:42 (resumed at 13:20 after a stalled model call) |
 | Round 3 | assistant @ `7cf9241` (fix found by round 2), Q4 only, run 2026-09-30 14:20 |
 | Round 4 | assistant @ `c3bae7c` (runtime-data prompt rule, stop button, path limits), Q4 ×3, run 2026-09-30 |
+| Round 5 | assistant @ `bcdbf97` (citation check, unconfirmed-calls list, prompt tightening), all questions, Q4 and Q8 ×3, run 2026-09-30 |
+| Round 6 | assistant @ `edf38a3` (repository gap vs runtime state in the prompt), Q8 ×3 and Q4 ×3, run 2026-09-30 |
 
 Each round was recorded exactly as it ran and committed before any fix (`ad73a2d` round 1, `5dfbb7b` round 2). Fixes between rounds were for bugs the evaluation exposed; nothing was tuned to a specific question's wording.
 
@@ -50,6 +52,27 @@ Verdicts: ✅ correct · 🟡 mostly correct (a minor fact missing) · ⚠️ pa
 
 The rule stopped fabrication and unnecessary tool creation (3/3), but not the framing: gemma4:e4b treats "how many are stored?" as "is there a function that counts them?".
 
+### Rounds 5 and 6: after the final review's improvements
+
+Round 5 added, in code: an answer with no (valid) citations goes back once for a rewrite; ambiguous and unresolved calls the agent visited are listed under the answer from the evidence. In the prompt: a fixed opening sentence for runtime-state questions, "only name files seen in tool results", and, for the tool writer, "work on the symbol's own lines".
+
+| # | Round 2 | Round 5 | Round 6 |
+| --- | --- | --- | --- |
+| Q1 Structure | ⚠️ 0 citations, invented folder | ⚠️ Now cited (the citation check works), still invents `app/db/models/` | - |
+| Q2 Nonexistent symbol | ✅ | ✅ | - |
+| Q3 Flow | 🟡 | 🟡 Route-level flow, all call lines cited; did not use `query_graph`, so no diagram or unconfirmed-calls list | - |
+| Q4 Runtime-only (×3 from round 4) | ❌ fabricated | ⚠️ 0/3 invented; 2/3 end "cannot determine ... from the source code", but because no count function was found | ⚠️ 0/3 invented; none use the prescribed sentence; 2/3 say the endpoint would have to be run |
+| Q5 Dependencies | ✅ | ✅ | - |
+| Q6 Implementation | ✅ | ⚠️ Creation correct; where the token is checked not found (repeated searches) | - |
+| Q7 Documentation | 🟡 | 🟡 | - |
+| Q8 Gap reported / tool created / correct | 3/3, 3/3, 1/3 | **0/3, 0/3, 0/3 (regression)** | **3/3, 3/3, 1/3** |
+
+**The round 5 regression and its fix.** The new runtime-state rule said not to report a capability gap, and the prompt opened with "you have the source code only"; the model applied both to git history and answered "outside the scope of the tools" three times. Round 6 separates the two cases explicitly (information in the repository that no tool reads yet → report a gap; state of the running application → cannot be known) and the gap was reported 3/3 again.
+
+**Round 6, Q8 in detail:** run 2's tool blamed the function's own lines and took the newest date: correct (Nik, 2020-05-01). Runs 1 and 3 made tools that need a file path, and the agent passed `articles` (from "the articles repository" in the question); the tool refused a path that does not exist, and the agent asked the user for the path instead of looking it up. No fabrication, but no answer.
+
+**Where this leaves things:** the safety measures held in every run after they were added (no invented value in the 10 runtime-question runs since round 3; since round 5 every answer that had evidence cites it; invalid paths refused). What did not improve with more prompt changes is how well the small model writes and uses tools, and whether it frames runtime questions correctly; each prompt change traded one behaviour for another. These are recorded as limitations rather than tuned further.
+
 ## What the evaluation found, and what was fixed
 
 **Round 1 → round 2 (`4c5d0a2`):**
@@ -65,9 +88,11 @@ The rule stopped fabrication and unnecessary tool creation (3/3), but not the fr
 ## Remaining weaknesses (not fixed)
 
 - **Generated tool logic varies:** in round 2, 2 of 3 Q8 tools used the file's last commit instead of blaming the function's lines, and got the wrong answer, even though `git_blame` and the function's line range were available. The pipeline validates that a tool is safe, runs, and reads repository data; it cannot validate that the tool computes the right thing.
-- **No citations for overview questions** (Q1 in both rounds) and an invented folder name, although the prompt requires citations.
-- **Answers stop short:** Q3 did not follow the call into the repository, and did not flag that call as unconfirmed although the graph marks it ambiguous. The Mermaid diagram is only drawn when the agent used `query_graph` on calls (Q5, Q6 in round 2; not Q3).
-- **Runtime-only questions:** the agent never explained, in any round, that stored data cannot be known from static analysis; round 3 also misreported search hits as SQL it had found. The model takes different paths on the same question (round 2 reported a gap and built a tool, round 3 did not).
+- **An invented folder name** in the structure answer (Q1, every round). Citations were missing in rounds 1-2; the round 5 citation check fixed that.
+- **Answers stop short:** Q3 did not follow the call into the repository. When the agent does use `query_graph` on calls, ambiguous calls are now listed under the answer by code (round 5); when it only reads the file, neither that list nor the diagram appears.
+- **Runtime-only questions:** since round 3 no run invented a value (10 runs), but no run used the prescribed "cannot be known from the source code" framing; the model looks for a counting function instead. It also misread search hits as SQL it had found (rounds 3 and 5).
+- **Tool use after creation:** in round 6, 2 of 3 created tools needed a file path and the agent passed a word from the question (`articles`) instead of looking the path up.
+- **Prompt changes trade behaviours:** round 5's runtime rule stopped the git-history gap from being reported at all until round 6 separated the cases. Further prompt tuning was stopped for this reason.
 - **Speed:** 1-5 minutes per question on this CPU, and the laptop occasionally slowed a single call to ~30 minutes when unattended.
 
 ## Generated tools
@@ -80,6 +105,9 @@ Every tool the model wrote during the evaluation is kept in [results/generated-t
 | `20260930-135726-count_table_records` | Round 2, Q4 | Accepted, **returns a hard-coded 12345** (would now be rejected: no ctx calls) |
 | `20260930-141309-get_function_history` | Round 2, Q8 run 1 | Accepted; blames the function's lines; correct answer |
 | `20260930-141559-get_function_history`, `-141846-get_function_history` | Round 2, Q8 runs 2-3 | Accepted; uses the file's last commit instead; wrong answer |
+| `20260930-230941-git_history_for_symbol` | Round 6, Q8 run 1 | Accepted; file-level `git_log`; called with a non-existent path, refused |
+| `20260930-231353-get_function_history` | Round 6, Q8 run 2 | Accepted; blames the function's lines, newest date wins; correct answer |
+| `20260930-231924-get_function_git_history` | Round 6, Q8 run 3 | Accepted; file-level `git_log`; called with a non-existent path, refused |
 
 ## Cases covered elsewhere
 

@@ -103,14 +103,14 @@ Configuration: `OLLAMA_MODEL` (default `gemma4:e4b`), `OLLAMA_URL` (default `htt
 
 Eight questions on the demo repository (structure, flow, dependencies, implementation, documentation, a nonexistent symbol, runtime-only data, and a git-history gap run three times), with expected answers written before any run and every answer checked by hand. Full write-up: [eval/RESULTS.md](eval/RESULTS.md).
 
-| | Round 1 | Round 2 (after fixes) |
-| --- | --- | --- |
-| Q1-Q7 correct or mostly correct | 2 / 7 | 5 / 7 |
-| Citation references valid | 8 / 8 | 12 / 12 |
-| Git-history gap: tool created / correct answer | 0 / 3, 0 / 3 | 3 / 3, 1 / 3 |
-| Tools created when not needed | 0 | 1 (fabricated a value; now blocked) |
+| | Round 1 | Round 2 (after fixes) | Final (rounds 5-6) |
+| --- | --- | --- | --- |
+| Q1-Q7 correct or mostly correct | 2 / 7 | 5 / 7 | 4 / 7 (Q6 search varied) |
+| Q1-Q7 answers with valid citations | 5 / 7 | 6 / 7 | 7 / 7 |
+| Git-history gap: reported / tool created / correct | 3 / 3, 0 / 3, 0 / 3 | 3 / 3, 3 / 3, 1 / 3 | 3 / 3, 3 / 3, 1 / 3 |
+| Runtime question: invented a value | 0 / 1 | 1 / 1 | 0 / 6 |
 
-The evaluation found four real bugs, each recorded before it was fixed: Ollama's default **4,096-token context silently dropped the system prompt and question** from longer prompts; `read_file` showed the model only 60 of the lines it returned; generated tools were tested on invented names; and a **generated tool returned a hard-coded number** that the agent reported as fact with a valid citation. Tools that read no repository data through `ctx` are now rejected.
+Six rounds were run; each was committed as it ran, before its fixes. The evaluation found four real bugs: Ollama's default **4,096-token context silently dropped the system prompt and question** from longer prompts; `read_file` showed the model only 60 of the lines it returned; generated tools were tested on invented names; and a **generated tool returned a hard-coded number** that the agent reported as fact with a valid citation (tools that read no repository data through `ctx` are now rejected). Later rounds added a citation check and a code-built list of unconfirmed calls. One prompt change (round 5) caused a regression, stopping the git-history gap from being reported, which round 6 fixed; prompt tuning was then stopped, since each change traded one behaviour of the small model for another.
 
 ## Deviations from the plan
 
