@@ -191,6 +191,37 @@ def test_round_limit_forces_an_answer_without_tools(repo):
     assert any(e.type == "limit_reached" for e in result.events)
 
 
+def test_uncited_answer_is_sent_back_once(repo):
+    llm = FakeLLM([call("list_files"), text("The code is in shop/."), text("The code is in shop/ [E1].")])
+    result = Agent(repo, llm).run("Where is the code?")
+    assert result.answer == "The code is in shop/ [E1]."
+    assert result.citations["valid"] == 1 and result.rounds == 1  # the rewrite is not a tool round
+    assert "cites no evidence" in llm.calls[2]["messages"][-1]["content"]
+
+
+def test_answer_citing_unknown_ids_is_sent_back_once_then_accepted(repo):
+    llm = FakeLLM([call("list_files"), text("See [E9]."), text("Still [E9].")])
+    result = Agent(repo, llm).run("q")
+    assert result.answer == "Still [E9]." and result.citations["missing"] == ["E9"]
+    assert "does not exist: ['E9']" in llm.calls[2]["messages"][-1]["content"]
+
+
+def test_unconfirmed_calls_are_listed_under_the_answer(repo):
+    llm = FakeLLM([call("query_graph", node="create_order", relation="callees"), text("It saves [E1].")])
+    result = Agent(repo, llm).run("What does create_order do?")
+    assert result.answer.startswith("It saves [E1].")
+    assert "**Not statically confirmed**" in result.answer
+    assert "`create_order` calls `shop.db.repo.OrderRepo.save` at `shop/services/orders.py:16`: ambiguous [E1]" \
+        in result.answer
+    assert "`create_order` calls `notifier` at `shop/services/orders.py:17`: unresolved [E1]" in result.answer
+    assert result.citations == {"cited": ["E1"], "missing": [], "valid": 1, "total": 1}  # model text only
+
+
+def test_no_note_when_all_calls_are_confirmed(repo):
+    llm = FakeLLM([call("query_graph", node="shop.db.repo.BaseRepo.get", relation="callees"), text("Fetches [E1].")])
+    assert Agent(repo, llm).run("q").answer == "Fetches [E1]."
+
+
 def test_agent_stops_between_steps_when_cancelled(repo):
     llm = FakeLLM([call("list_files"), call("list_files"), text("never reached")])
     checks = iter([False, True])  # allow the first step, then cancel

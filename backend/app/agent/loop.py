@@ -7,9 +7,9 @@ from typing import Callable
 
 from app.agent.actions import GAP_TOOL, GAP_TOOL_NAME, CapabilityGap, FinalAnswer, Invalid, ToolCall, parse_reply
 from app.agent.diagram import build_mermaid
-from app.agent.evidence import EvidenceStore, check_citations, compact
-from app.agent.prompts import (GAP_FAILED, GAP_LIMIT, GAP_UNAVAILABLE, LIMIT_REACHED, NO_TOOL_YET, SYSTEM_PROMPT,
-                               TOOL_CREATED)
+from app.agent.evidence import EvidenceStore, check_citations, compact, unconfirmed_note
+from app.agent.prompts import (GAP_FAILED, GAP_LIMIT, GAP_UNAVAILABLE, LIMIT_REACHED, NEEDS_CITATIONS, NO_TOOL_YET,
+                               SYSTEM_PROMPT, TOOL_CREATED)
 from app.llm.base import LLMProvider
 from app.tools.registry import CORE_TOOLS, run_tool
 from app.tools.repo import LoadedRepo, ToolError
@@ -130,6 +130,7 @@ class Agent:
         gaps: list[CapabilityGap] = []
         rounds = 0
         nudged = False
+        cite_checked = False
         self._emit("started", question=question, model=self.llm.name, max_rounds=self.max_rounds)
 
         while True:
@@ -158,7 +159,17 @@ class Agent:
 
             if isinstance(action, FinalAnswer):
                 answer = action.text or "(the model returned an empty answer)"
-                citations = check_citations(answer, store)
+                citations = check_citations(answer, store)  # measured on the model's own text
+                if not forced and store.items and not cite_checked and (not citations["total"] or citations["missing"]):
+                    # Once per question: an answer without (valid) citations goes back for a rewrite.
+                    cite_checked = True
+                    problem = (f"cites evidence that does not exist: {citations['missing']}" if citations["missing"]
+                               else "cites no evidence")
+                    self._emit("invalid_action", round=rounds, error=f"answer {problem}; asked to rewrite it")
+                    steps.append(_Step({"role": "assistant", "content": answer[:3000]},
+                                       {"role": "user", "content": NEEDS_CITATIONS.format(problem=problem)}))
+                    continue
+                answer += unconfirmed_note(store)
                 diagram = build_mermaid(store)
                 self._emit("answer", text=answer, citations=citations, rounds=rounds, diagram=diagram)
                 return AgentResult(answer, citations, store, rounds, "limit" if forced else "answer", gaps,

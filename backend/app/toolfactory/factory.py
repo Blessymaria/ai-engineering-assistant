@@ -62,6 +62,8 @@ There are no other ctx methods.
 Rules: only import {imports} (inside the body). Do not use open, eval, exec, getattr, os, sys, subprocess,
 or any name with double underscores. Keep the body under 25 lines. Read inputs from `args`.
 Never return made-up, simulated or placeholder values: every value must come from ctx.
+If the capability is about one function or class, work on that symbol's own lines (its "line" to "end" from
+ctx.list_nodes), not on the whole file, and combine per-line results yourself (e.g. newest date wins).
 Do not catch exceptions: let errors propagate. Take the kind of input the agent has: if the example input
 is a function or class name, accept that name and find its file and lines with ctx.list_nodes or
 ctx.search_code (nodes have "path", "line" and "end"). example_input must use a name that exists in THIS

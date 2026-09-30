@@ -110,6 +110,41 @@ def compact(tool: str, result: dict) -> str:
     return text if len(text) <= MAX_CHARS else text[:MAX_CHARS] + "\n... cut"
 
 
+MAX_UNCONFIRMED = 8
+
+
+def unconfirmed_note(store: EvidenceStore) -> str:
+    """Markdown listing the ambiguous/unresolved calls the agent saw, built from evidence (not by the model).
+
+    Makes sure an answer never presents a call the graph could not confirm as certain.
+    """
+    seen: list[tuple[str, str, str, str, str]] = []
+    for ev in store.items.values():
+        if ev.tool != "query_graph" or ev.result["relation"] not in ("callees", "callers"):
+            continue
+        start = ev.result["node"]
+        for r in ev.result["results"]:
+            if r.get("status") not in ("ambiguous", "unresolved"):
+                continue
+            if ev.result["relation"] == "callees":
+                caller, callee, where = r.get("via", start["id"]), r["id"], start.get("path") if r["depth"] == 1 else None
+            else:
+                caller, callee, where = r["id"], start["id"], r.get("path")
+            location = f"{where}:{r['call_line']}" if where else f"line {r['call_line']}"
+            item = (caller.split(".")[-1], callee.split(":", 1)[-1], r["status"], location, ev.id)
+            if item[:3] not in [s[:3] for s in seen]:
+                seen.append(item)
+    if not seen:
+        return ""
+    lines = ["", "", "**Not statically confirmed** (the code graph could not resolve these calls to a single "
+             "target, e.g. injected objects; check the source before relying on them):"]
+    for caller, callee, status, location, ev_id in seen[:MAX_UNCONFIRMED]:
+        lines.append(f"- `{caller}` calls `{callee}` at `{location}`: {status} [{ev_id}]")
+    if len(seen) > MAX_UNCONFIRMED:
+        lines.append(f"- ... and {len(seen) - MAX_UNCONFIRMED} more")
+    return "\n".join(lines)
+
+
 def check_citations(answer: str, store: EvidenceStore) -> dict:
     """Which evidence ids the answer cites, and which of those do not exist.
 
