@@ -1,0 +1,65 @@
+{
+  "context": {
+    "model": "gemma4:e4b",
+    "machine": "Intel64 Family 6 Model 181 Stepping 0, GenuineIntel",
+    "os": "Windows-11-10.0.26200-SP0",
+    "assistant_commit": "edf38a358635f51ff8e712dc46a75a22faa20931",
+    "demo_repo": "fastapi-realworld-example-app",
+    "demo_commit": "029eb7781c60d5f563ee8990a0cbfb79b244538c",
+    "started": "2026-09-30 23:20:09"
+  },
+  "runs": [
+    {
+      "id": "Q4",
+      "run": 1,
+      "rounds": 5,
+      "seconds": 127.7,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E3",
+          "E4"
+        ],
+        "missing": [],
+        "valid": 2,
+        "total": 2
+      },
+      "tools_created": [],
+      "file": "Q4-run1.json"
+    },
+    {
+      "id": "Q4",
+      "run": 2,
+      "rounds": 6,
+      "seconds": 155.8,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E3"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [],
+      "file": "Q4-run2.json"
+    },
+    {
+      "id": "Q4",
+      "run": 3,
+      "rounds": 6,
+      "seconds": 156.2,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E3"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [],
+      "file": "Q4-run3.json"
+    }
+  ]
+}

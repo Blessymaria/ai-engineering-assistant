@@ -1,0 +1,81 @@
+{
+  "gap": {
+    "missing_capability": "Git history access (who changed what and when)",
+    "reason": "The user is asking for the last change date and author of a specific function, which requires accessing the repository's version control history (like git log). None of the available tools (search_code, query_graph, read_file, list_files) provide this historical information.",
+    "example_input": "git log -- function create_article in articles"
+  },
+  "created": true,
+  "tool": "get_function_history",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "function_name": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "function_name"
+    ]
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "spec": {
+        "name": "get_function_history",
+        "description": "Retrieves the last change date and author for a specified function using git history.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "function_name": {
+              "type": "string",
+              "description": "The name of the function to check history for."
+            }
+          },
+          "required": [
+            "function_name"
+          ]
+        },
+        "example_input": {
+          "function_name": "create_article"
+        },
+        "code": "import re\n\n# Assuming the agent input format is 'git log -- function <function_name> in <file_path>' \n# We need to extract the function name and its path/context from the agent's input.\n# Given the example input structure, we'll assume the agent passes the function name and the context is derived from the node list.\n\n# For this specific tool, we rely on the agent passing the function name and we must find its location.\n# We'll use the function name provided in args['function_name'] and search for it.\n\nfunc_name = args.get(\"function_name\")\nif not func_name:\n    return {\"error\": \"Function name is required.\"}\n\n# 1. Find the node(s) corresponding to the function name\nnodes = []\nfor node in ctx.list_nodes(\"function\"):\n    if node[\"name\"] == func_name:\n        nodes.append(node)\n\nif not nodes:\n    return {\"error\": f\"Function '{func_name}' not found in the repository.\"}\n\n# For simplicity, we take the first found node's path as the primary location.\n# In a real scenario, we might need to aggregate results if the function appears multiple times.\ntarget_path = nodes[0][\"path\"]\n\n# 2. Use ctx.git_blame to get line-by-line history for the function's range.\n# We use the first node's line and end for the blame range.\nstart_line = nodes[0][\"line\"]\nend_line = nodes[0][\"end\"]\n\nblame_data = ctx.git_blame(target_path, start_line, end_line)\n\n# 3. Aggregate the latest change info (newest date wins).\n# Since blame returns line-by-line, we'll track the latest commit/author for the whole block.\nlatest_commit = None\nlatest_date = \"0000-00-00T00:00:00Z\"\nlatest_author = \"Unknown\"\n\nfor entry in blame_data:\n    # The date format from git_blame is ISO 8601, which sorts correctly as strings.\n    entry_date = entry.get(\"date\", \"0000-00-00T00:00:00Z\")\n    if entry_date > latest_date:\n        latest_date = entry_date\n        latest_commit = entry.get(\"commit\")\n        latest_author = entry.get(\"author\")\n\nreturn {\n    \"function_name\": func_name,\n    \"path\": target_path,\n    \"last_changed\": {\n        \"date\": latest_date,\n        \"author\": latest_author,\n        \"commit_hash\": latest_commit\n    }\n}"
+      },
+      "raw": null,
+      "errors": [],
+      "test": {
+        "input": {
+          "function_name": "create_article"
+        },
+        "ok": true,
+        "output": {
+          "function_name": "create_article",
+          "path": "app/db/repositories/articles.py",
+          "last_changed": {
+            "date": "2020-05-01T09:31:05+00:00",
+            "author": "Nik",
+            "commit_hash": "155ac54017a4"
+          }
+        },
+        "error": null,
+        "seconds": 7.34,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          },
+          {
+            "method": "git_blame",
+            "args": {
+              "path": "app/db/repositories/articles.py",
+              "start": 34,
+              "end": 63
+            }
+          }
+        ]
+      },
+      "llm_seconds": 148.1
+    }
+  ]
+}

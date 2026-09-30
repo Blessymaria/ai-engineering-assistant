@@ -1,0 +1,135 @@
+{
+  "gap": {
+    "missing_capability": "Git history (commit details like author and timestamp)",
+    "reason": "The available tools (search_code, query_graph, read_file, list_files) only allow reading the current source code structure and content, not the historical metadata like commit logs.",
+    "example_input": "git log -- function create_article in articles"
+  },
+  "created": true,
+  "tool": "git_history_for_symbol",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "symbol_name": {
+        "type": "string"
+      },
+      "symbol_kind": {
+        "type": "string"
+      },
+      "file_path": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "symbol_name",
+      "symbol_kind",
+      "file_path"
+    ]
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "spec": {
+        "name": "git_history_for_symbol",
+        "description": "Retrieves commit history details for a specific function or class.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "symbol_name": {
+              "type": "string",
+              "description": "The name of the function or class (e.g., create_article)."
+            },
+            "symbol_kind": {
+              "type": "string",
+              "description": "The kind of symbol (function or class)."
+            },
+            "file_path": {
+              "type": "string",
+              "description": "The file path where the symbol is located."
+            }
+          },
+          "required": [
+            "symbol_name",
+            "symbol_kind",
+            "file_path"
+          ]
+        },
+        "example_input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function",
+          "file_path": "app/db/repositories/articles.py"
+        },
+        "code": "import re\n\n# Extract the symbol's path from the node information\n# We assume the node found via list_nodes or search_code is the target.\n# Since the input is structured, we rely on file_path being correct.\n\n# Use git_log on the file path to get history for the whole file\nlog_data = ctx.git_log(args['file_path'], limit=10)\n\n# Filter commits to see if the symbol name appears in the subject or if we can infer relevance.\n# Since git_log only gives file-level history, we'll return the general history\n# and let the consumer filter/interpret based on the symbol name.\n\n# For a more precise answer, we'd need a tool that can query history *per symbol*, \n# but given the available tools, we use git_log on the file path.\n\nreturn {\"file_path\": args['file_path'], \"symbol_name\": args['symbol_name'], \"history\": log_data}"
+      },
+      "raw": null,
+      "errors": [],
+      "test": {
+        "input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function",
+          "file_path": "app/db/repositories/articles.py"
+        },
+        "ok": true,
+        "output": {
+          "file_path": "app/db/repositories/articles.py",
+          "symbol_name": "create_article",
+          "history": [
+            {
+              "commit": "32916db32a93",
+              "author": "dependabot-preview[bot]",
+              "email": "27856297+dependabot-preview[bot]@users.noreply.github.com",
+              "date": "2020-09-02T01:31:34+03:00",
+              "subject": "Bump black from 19.10b0 to 20.8b1 (#80)"
+            },
+            {
+              "commit": "1851f405b93f",
+              "author": "Nik",
+              "email": "snive2013@yandex.ru",
+              "date": "2020-05-01T13:44:19+03:00",
+              "subject": "remove ignore of formatting errors and fix them (#38)"
+            },
+            {
+              "commit": "155ac54017a4",
+              "author": "Nik",
+              "email": "snive2013@yandex.ru",
+              "date": "2020-05-01T12:31:05+03:00",
+              "subject": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "commit": "6403d8db8ae0",
+              "author": "Nik",
+              "email": "snive2013@yandex.ru",
+              "date": "2020-03-28T03:36:13+03:00",
+              "subject": "Update deps (#25)"
+            },
+            {
+              "commit": "7f69c2a047b8",
+              "author": "Nik",
+              "email": "snive2013@yandex.ru",
+              "date": "2019-12-01T00:00:32+03:00",
+              "subject": "Update dependencies (#9)"
+            },
+            {
+              "commit": "61bb195dac11",
+              "author": "Nik",
+              "email": "sidnev.nick@gmail.com",
+              "date": "2019-11-18T03:23:23+03:00",
+              "subject": "RealWorld Refactoring (#7)"
+            }
+          ]
+        },
+        "error": null,
+        "seconds": 7.0,
+        "ctx_calls": [
+          {
+            "method": "git_log",
+            "args": {
+              "path": "app/db/repositories/articles.py",
+              "limit": 10
+            }
+          }
+        ]
+      },
+      "llm_seconds": 82.3
+    }
+  ]
+}

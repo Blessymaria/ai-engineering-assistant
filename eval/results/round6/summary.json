@@ -1,0 +1,78 @@
+{
+  "context": {
+    "model": "gemma4:e4b",
+    "machine": "Intel64 Family 6 Model 181 Stepping 0, GenuineIntel",
+    "os": "Windows-11-10.0.26200-SP0",
+    "assistant_commit": "edf38a358635f51ff8e712dc46a75a22faa20931",
+    "demo_repo": "fastapi-realworld-example-app",
+    "demo_commit": "029eb7781c60d5f563ee8990a0cbfb79b244538c",
+    "started": "2026-09-30 23:07:11"
+  },
+  "runs": [
+    {
+      "id": "Q8",
+      "run": 1,
+      "rounds": 2,
+      "seconds": 210.3,
+      "stopped": "answer",
+      "citations": {
+        "cited": [],
+        "missing": [],
+        "valid": 0,
+        "total": 0
+      },
+      "tools_created": [
+        {
+          "name": "git_history_for_symbol",
+          "attempts": 1,
+          "seconds": 89.3
+        }
+      ],
+      "file": "Q8-run1.json"
+    },
+    {
+      "id": "Q8",
+      "run": 2,
+      "rounds": 3,
+      "seconds": 220.6,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E1"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [
+        {
+          "name": "get_function_history",
+          "attempts": 1,
+          "seconds": 155.4
+        }
+      ],
+      "file": "Q8-run2.json"
+    },
+    {
+      "id": "Q8",
+      "run": 3,
+      "rounds": 3,
+      "seconds": 337.6,
+      "stopped": "answer",
+      "citations": {
+        "cited": [],
+        "missing": [],
+        "valid": 0,
+        "total": 0
+      },
+      "tools_created": [
+        {
+          "name": "get_function_git_history",
+          "attempts": 2,
+          "seconds": 266.1
+        }
+      ],
+      "file": "Q8-run3.json"
+    }
+  ]
+}
