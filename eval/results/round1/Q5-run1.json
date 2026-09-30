@@ -1,0 +1,267 @@
+{
+  "id": "Q5",
+  "run": 1,
+  "question": "Which modules depend on app.db.repositories.articles?",
+  "expected": [
+    "app.services.articles",
+    "app.api.routes.articles.articles_common",
+    "app.api.routes.articles.articles_resource",
+    "app.api.dependencies.articles",
+    "tests.conftest",
+    "tests.test_api.test_routes.test_articles"
+  ],
+  "answer": "The modules that depend on `app.db.repositories.articles` are:\n\n*   `app.services.articles` [E2]\n*   `app.api.routes.articles.articles_common` [E2]\n*   `tests.test_api.test_routes.test_articles` [E2]\n*   `app.api.dependencies.articles` [E2]\n*   `tests.conftest` [E2]\n*   `app.api.routes.articles.articles_resource` [E2]",
+  "citations": {
+    "cited": [
+      "E2"
+    ],
+    "missing": [],
+    "valid": 1,
+    "total": 1
+  },
+  "diagram": "flowchart TD\n    n0[\"articles\"]\n    n1[\"articles\"]\n    n2[\"articles_common\"]\n    n3[\"test_articles\"]\n    n4[\"articles\"]\n    n5[\"conftest\"]\n    n6[\"articles_resource\"]\n    n0 --> n1\n    n2 --> n1\n    n3 --> n1\n    n4 --> n1\n    n5 --> n1\n    n6 --> n1",
+  "rounds": 2,
+  "seconds": 62.6,
+  "stopped": "answer",
+  "gaps": [],
+  "tools_created": [],
+  "tool_failures": [],
+  "steps": [
+    {
+      "type": "started",
+      "question": "Which modules depend on app.db.repositories.articles?",
+      "model": "gemma4:e4b",
+      "max_rounds": 12
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 24.2,
+      "tokens": 21,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 1,
+      "tool": "search_code",
+      "args": {
+        "query": "app.db.repositories.articles"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 1,
+      "tool": "search_code",
+      "evidence_id": "E1",
+      "summary": "search_code(query='app.db.repositories.articles'): 296 matches; top: app.db.repositories.articles",
+      "ms": 6
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 14.3,
+      "tokens": 29,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 2,
+      "tool": "query_graph",
+      "args": {
+        "node": "app.db.repositories.articles",
+        "relation": "imported_by"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 2,
+      "tool": "query_graph",
+      "evidence_id": "E2",
+      "summary": "query_graph(node='app.db.repositories.articles', relation='imported_by'): 6 imported_by of app.db.repositories.articles",
+      "ms": 0
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 24.1,
+      "tokens": 122,
+      "done_reason": "stop"
+    },
+    {
+      "type": "answer",
+      "citations": {
+        "cited": [
+          "E2"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "rounds": 2,
+      "diagram": "flowchart TD\n    n0[\"articles\"]\n    n1[\"articles\"]\n    n2[\"articles_common\"]\n    n3[\"test_articles\"]\n    n4[\"articles\"]\n    n5[\"conftest\"]\n    n6[\"articles_resource\"]\n    n0 --> n1\n    n2 --> n1\n    n3 --> n1\n    n4 --> n1\n    n5 --> n1\n    n6 --> n1"
+    }
+  ],
+  "evidence": {
+    "E1": {
+      "id": "E1",
+      "tool": "search_code",
+      "args": {
+        "query": "app.db.repositories.articles"
+      },
+      "summary": "search_code(query='app.db.repositories.articles'): 296 matches; top: app.db.repositories.articles",
+      "result": {
+        "query": "app.db.repositories.articles",
+        "total": 296,
+        "results": [
+          {
+            "id": "app.db.repositories.articles",
+            "kind": "module",
+            "name": "app.db.repositories.articles",
+            "path": "app/db/repositories/articles.py",
+            "line": 1,
+            "score": 100
+          },
+          {
+            "id": "app.db.repositories",
+            "kind": "module",
+            "name": "app.db.repositories",
+            "path": "app/db/repositories/__init__.py",
+            "line": 1,
+            "score": 30.0
+          },
+          {
+            "id": "app.db.repositories.base",
+            "kind": "module",
+            "name": "app.db.repositories.base",
+            "path": "app/db/repositories/base.py",
+            "line": 1,
+            "score": 30.0
+          },
+          {
+            "id": "app.db.repositories.comments",
+            "kind": "module",
+            "name": "app.db.repositories.comments",
+            "path": "app/db/repositories/comments.py",
+            "line": 1,
+            "score": 30.0
+          },
+          {
+            "id": "app.db.repositories.profiles",
+            "kind": "module",
+            "name": "app.db.repositories.profiles",
+            "path": "app/db/repositories/profiles.py",
+            "line": 1,
+            "score": 30.0
+          },
+          {
+            "id": "app.db.repositories.tags",
+            "kind": "module",
+            "name": "app.db.repositories.tags",
+            "path": "app/db/repositories/tags.py",
+            "line": 1,
+            "score": 30.0
+          },
+          {
+            "id": "app.db.repositories.users",
+            "kind": "module",
+            "name": "app.db.repositories.users",
+            "path": "app/db/repositories/users.py",
+            "line": 1,
+            "score": 30.0
+          },
+          {
+            "id": "app.db.repositories.articles.ArticlesRepository._get_article_from_db_record",
+            "kind": "function",
+            "name": "_get_article_from_db_record",
+            "path": "app/db/repositories/articles.py",
+            "line": 294,
+            "score": 25.0
+          },
+          {
+            "id": "app.api.dependencies.articles",
+            "kind": "module",
+            "name": "app.api.dependencies.articles",
+            "path": "app/api/dependencies/articles.py",
+            "line": 1,
+            "score": 20.0
+          },
+          {
+            "id": "app.api.routes.articles",
+            "kind": "module",
+            "name": "app.api.routes.articles",
+            "path": "app/api/routes/articles/__init__.py",
+            "line": 1,
+            "score": 20.0
+          }
+        ]
+      }
+    },
+    "E2": {
+      "id": "E2",
+      "tool": "query_graph",
+      "args": {
+        "node": "app.db.repositories.articles",
+        "relation": "imported_by"
+      },
+      "summary": "query_graph(node='app.db.repositories.articles', relation='imported_by'): 6 imported_by of app.db.repositories.articles",
+      "result": {
+        "node": {
+          "id": "app.db.repositories.articles",
+          "kind": "module",
+          "name": "app.db.repositories.articles",
+          "path": "app/db/repositories/articles.py",
+          "line": 1
+        },
+        "relation": "imported_by",
+        "depth": 1,
+        "results": [
+          {
+            "id": "app.services.articles",
+            "kind": "module",
+            "name": "app.services.articles",
+            "path": "app/services/articles.py",
+            "line": 1,
+            "depth": 1
+          },
+          {
+            "id": "app.api.routes.articles.articles_common",
+            "kind": "module",
+            "name": "app.api.routes.articles.articles_common",
+            "path": "app/api/routes/articles/articles_common.py",
+            "line": 1,
+            "depth": 1
+          },
+          {
+            "id": "tests.test_api.test_routes.test_articles",
+            "kind": "module",
+            "name": "tests.test_api.test_routes.test_articles",
+            "path": "tests/test_api/test_routes/test_articles.py",
+            "line": 1,
+            "depth": 1
+          },
+          {
+            "id": "app.api.dependencies.articles",
+            "kind": "module",
+            "name": "app.api.dependencies.articles",
+            "path": "app/api/dependencies/articles.py",
+            "line": 1,
+            "depth": 1
+          },
+          {
+            "id": "tests.conftest",
+            "kind": "module",
+            "name": "tests.conftest",
+            "path": "tests/conftest.py",
+            "line": 1,
+            "depth": 1
+          },
+          {
+            "id": "app.api.routes.articles.articles_resource",
+            "kind": "module",
+            "name": "app.api.routes.articles.articles_resource",
+            "path": "app/api/routes/articles/articles_resource.py",
+            "line": 1,
+            "depth": 1
+          }
+        ]
+      }
+    }
+  }
+}
