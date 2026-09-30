@@ -37,8 +37,10 @@ pre, code { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
   padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
 }
 .brand { white-space: nowrap; }
-.repo-form { display: flex; gap: 8px; flex: 1 1 380px; }
-.repo-form input { flex: 1; }
+.repo-form { display: flex; align-items: center; gap: 8px; flex: 1 1 380px; }
+.repo-form label { color: var(--muted); white-space: nowrap; }
+.repo-form input { flex: 1; font-size: 13px; }
+button.secondary { background: #fff; color: var(--accent); }
 .repo-status { flex: 1 1 260px; text-align: right; color: var(--muted); }
 
 /* Two panels */
