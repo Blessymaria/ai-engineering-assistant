@@ -1,0 +1,193 @@
+{
+  "context": {
+    "model": "gemma4:e4b",
+    "machine": "Intel64 Family 6 Model 181 Stepping 0, GenuineIntel",
+    "os": "Windows-11-10.0.26200-SP0",
+    "assistant_commit": "4c5d0a2aea768edaead6ba69855b5c3f0657883c",
+    "demo_repo": "fastapi-realworld-example-app",
+    "demo_commit": "029eb7781c60d5f563ee8990a0cbfb79b244538c",
+    "started": "2026-09-30 13:20:24"
+  },
+  "runs": [
+    {
+      "id": "Q2",
+      "run": 1,
+      "rounds": 4,
+      "seconds": 152.2,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E3",
+          "E4"
+        ],
+        "missing": [],
+        "valid": 2,
+        "total": 2
+      },
+      "tools_created": [],
+      "file": "Q2-run1.json"
+    },
+    {
+      "id": "Q3",
+      "run": 1,
+      "rounds": 3,
+      "seconds": 199.3,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E3"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [],
+      "file": "Q3-run1.json"
+    },
+    {
+      "id": "Q4",
+      "run": 1,
+      "rounds": 5,
+      "seconds": 2120.7,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E4"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [
+        {
+          "name": "count_table_records",
+          "attempts": 1,
+          "seconds": 76.2
+        }
+      ],
+      "file": "Q4-run1.json"
+    },
+    {
+      "id": "Q5",
+      "run": 1,
+      "rounds": 2,
+      "seconds": 74.1,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E2"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [],
+      "file": "Q5-run1.json"
+    },
+    {
+      "id": "Q6",
+      "run": 1,
+      "rounds": 6,
+      "seconds": 312.6,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E3",
+          "E1",
+          "E6"
+        ],
+        "missing": [],
+        "valid": 3,
+        "total": 3
+      },
+      "tools_created": [],
+      "file": "Q6-run1.json"
+    },
+    {
+      "id": "Q7",
+      "run": 1,
+      "rounds": 2,
+      "seconds": 121.4,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E2"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [],
+      "file": "Q7-run1.json"
+    },
+    {
+      "id": "Q8",
+      "run": 1,
+      "rounds": 2,
+      "seconds": 196.8,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E1"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [
+        {
+          "name": "get_function_history",
+          "attempts": 1,
+          "seconds": 125.2
+        }
+      ],
+      "file": "Q8-run1.json"
+    },
+    {
+      "id": "Q8",
+      "run": 2,
+      "rounds": 2,
+      "seconds": 168.7,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E1"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [
+        {
+          "name": "get_function_history",
+          "attempts": 1,
+          "seconds": 97.2
+        }
+      ],
+      "file": "Q8-run2.json"
+    },
+    {
+      "id": "Q8",
+      "run": 3,
+      "rounds": 2,
+      "seconds": 166.5,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E1"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "tools_created": [
+        {
+          "name": "get_function_history",
+          "attempts": 1,
+          "seconds": 95.2
+        }
+      ],
+      "file": "Q8-run3.json"
+    }
+  ]
+}

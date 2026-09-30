@@ -1,0 +1,180 @@
+{
+  "id": "Q7",
+  "run": 1,
+  "question": "According to the README, how do I run the tests?",
+  "expected": [
+    "Tests live in the tests/ folder",
+    "Set the DATABASE_URL environment variable or database_url in app/core/settings/test.py",
+    "Run the pytest command"
+  ],
+  "answer": "The README.rst file shows how to run the tests under the \"Run tests\" section [E2, README.rst:74-86].\n\nTo run all the tests of the project, you should run the following command in your terminal:\n```bash\n$ pytest\n```\n\nThe README also mentions that tests are defined in the `tests/` folder [E2, README.rst:77]. It also provides an example of how to run a specific test using `pytest` [E2, README.rst:111-114].",
+  "citations": {
+    "cited": [
+      "E2"
+    ],
+    "missing": [],
+    "valid": 1,
+    "total": 1
+  },
+  "diagram": null,
+  "rounds": 2,
+  "seconds": 121.4,
+  "stopped": "answer",
+  "gaps": [],
+  "tools_created": [],
+  "tool_failures": [],
+  "steps": [
+    {
+      "type": "started",
+      "question": "According to the README, how do I run the tests?",
+      "model": "gemma4:e4b",
+      "max_rounds": 12
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 4.3,
+      "tokens": 15,
+      "prompt_tokens": 743,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 1,
+      "tool": "search_code",
+      "args": {
+        "query": "README"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 1,
+      "tool": "search_code",
+      "evidence_id": "E1",
+      "summary": "search_code(query='README'): 6 matches; top: doc:README.rst#L1",
+      "ms": 3
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 9.0,
+      "tokens": 17,
+      "prompt_tokens": 905,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 2,
+      "tool": "read_file",
+      "args": {
+        "path": "README.rst"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 2,
+      "tool": "read_file",
+      "evidence_id": "E2",
+      "summary": "read_file(path='README.rst'): lines 1-120 of 157",
+      "ms": 0
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 108.2,
+      "tokens": 120,
+      "prompt_tokens": 3226,
+      "done_reason": "stop"
+    },
+    {
+      "type": "answer",
+      "citations": {
+        "cited": [
+          "E2"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1
+      },
+      "rounds": 2,
+      "diagram": null
+    }
+  ],
+  "evidence": {
+    "E1": {
+      "id": "E1",
+      "tool": "search_code",
+      "args": {
+        "query": "README"
+      },
+      "summary": "search_code(query='README'): 6 matches; top: doc:README.rst#L1",
+      "result": {
+        "query": "README",
+        "total": 6,
+        "results": [
+          {
+            "id": "doc:README.rst#L1",
+            "kind": "doc",
+            "name": "README.rst",
+            "path": "README.rst",
+            "line": 1,
+            "score": 55.0
+          },
+          {
+            "id": "doc:README.rst#L32",
+            "kind": "doc",
+            "name": "Quickstart",
+            "path": "README.rst",
+            "line": 32,
+            "score": 5.0
+          },
+          {
+            "id": "doc:README.rst#L74",
+            "kind": "doc",
+            "name": "Run tests",
+            "path": "README.rst",
+            "line": 74,
+            "score": 5.0
+          },
+          {
+            "id": "doc:README.rst#L116",
+            "kind": "doc",
+            "name": "Deployment with Docker",
+            "path": "README.rst",
+            "line": 116,
+            "score": 5.0
+          },
+          {
+            "id": "doc:README.rst#L129",
+            "kind": "doc",
+            "name": "Web routes",
+            "path": "README.rst",
+            "line": 129,
+            "score": 5.0
+          },
+          {
+            "id": "doc:README.rst#L135",
+            "kind": "doc",
+            "name": "Project structure",
+            "path": "README.rst",
+            "line": 135,
+            "score": 5.0
+          }
+        ]
+      }
+    },
+    "E2": {
+      "id": "E2",
+      "tool": "read_file",
+      "args": {
+        "path": "README.rst"
+      },
+      "summary": "read_file(path='README.rst'): lines 1-120 of 157",
+      "result": {
+        "path": "README.rst",
+        "start": 1,
+        "end": 120,
+        "total_lines": 157,
+        "content": "   1| .. image:: ./.github/assets/logo.png\n   2| \n   3| |\n   4| \n   5| .. image:: https://github.com/nsidnev/fastapi-realworld-example-app/workflows/API%20spec/badge.svg\n   6|    :target: https://github.com/nsidnev/fastapi-realworld-example-app\n   7| \n   8| .. image:: https://github.com/nsidnev/fastapi-realworld-example-app/workflows/Tests/badge.svg\n   9|    :target: https://github.com/nsidnev/fastapi-realworld-example-app\n  10| \n  11| .. image:: https://github.com/nsidnev/fastapi-realworld-example-app/workflows/Styles/badge.svg\n  12|    :target: https://github.com/nsidnev/fastapi-realworld-example-app\n  13| \n  14| .. image:: https://codecov.io/gh/nsidnev/fastapi-realworld-example-app/branch/master/graph/badge.svg\n  15|    :target: https://codecov.io/gh/nsidnev/fastapi-realworld-example-app\n  16| \n  17| .. image:: https://img.shields.io/github/license/Naereen/StrapDown.js.svg\n  18|    :target: https://github.com/nsidnev/fastapi-realworld-example-app/blob/master/LICENSE\n  19| \n  20| .. image:: https://img.shields.io/badge/code%20style-black-000000.svg\n  21|    :target: https://github.com/ambv/black\n  22| \n  23| .. image:: https://img.shields.io/badge/style-wemake-000000.svg\n  24|    :target: https://github.com/wemake-services/wemake-python-styleguide\n  25| \n  26| ----------\n  27| \n  28| **NOTE**: This repository is not actively maintained because this example is quite complete and does its primary goal - passing Conduit testsuite.\n  29| \n  30| More modern and relevant examples can be found in other repositories with ``fastapi`` tag on GitHub.\n  31| \n  32| Quickstart\n  33| ----------\n  34| \n  35| First, run ``PostgreSQL``, set environment variables and create database. For example using ``docker``: ::\n  36| \n  37|     export POSTGRES_DB=rwdb POSTGRES_PORT=5432 POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres\n  38|     docker run --name pgdb --rm -e POSTGRES_USER=\"$POSTGRES_USER\" -e POSTGRES_PASSWORD=\"$POSTGRES_PASSWORD\" -e POSTGRES_DB=\"$POSTGRES_DB\" postgres\n  39|     export POSTGRES_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' pgdb)\n  40|     createdb --host=$POSTGRES_HOST --port=$POSTGRES_PORT --username=$POSTGRES_USER $POSTGRES_DB\n  41| \n  42| Then run the following commands to bootstrap your environment with ``poetry``: ::\n  43| \n  44|     git clone https://github.com/nsidnev/fastapi-realworld-example-app\n  45|     cd fastapi-realworld-example-app\n  46|     poetry install\n  47|     poetry shell\n  48| \n  49| Then create ``.env`` file (or rename and modify ``.env.example``) in project root and set environment variables for application: ::\n  50| \n  51|     touch .env\n  52|     echo APP_ENV=dev >> .env\n  53|     echo DATABASE_URL=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB >> .env\n  54|     echo SECRET_KEY=$(openssl rand -hex 32) >> .env\n  55| \n  56| To run the web application in debug use::\n  57| \n  58|     alembic upgrade head\n  59|     uvicorn app.main:app --reload\n  60| \n  61| If you run into the following error in your docker container:\n  62| \n  63|    sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) could not connect to server: No such file or directory\n  64|    Is the server running locally and accepting\n  65|    connections on Unix domain socket \"/tmp/.s.PGSQL.5432\"?\n  66| \n  67| Ensure the DATABASE_URL variable is set correctly in the `.env` file.\n  68| It is most likely caused by POSTGRES_HOST not pointing to its localhost.\n  69| \n  70|    DATABASE_URL=postgresql://postgres:postgres@0.0.0.0:5432/rwdb\n  71| \n  72| \n  73| \n  74| Run tests\n  75| ---------\n  76| \n  77| Tests for this project are defined in the ``tests/`` folder.\n  78| \n  79| Set up environment variable ``DATABASE_URL`` or set up ``database_url`` in ``app/core/settings/test.py``\n  80| \n  81| This project uses `pytest\n  82| <https://docs.pytest.org/>`_ to define tests because it allows you to use the ``assert`` keyword with good formatting for failed assertations.\n  83| \n  84| \n  85| To run all the tests of a project, simply run the ``pytest`` command: ::\n  86| \n  87|     $ pytest\n  88|     ================================================= test session starts ==================================================\n  89|     platform linux -- Python 3.8.3, pytest-5.4.2, py-1.8.1, pluggy-0.13.1\n  90|     rootdir: /home/some-user/user-projects/fastapi-realworld-example-app, inifile: setup.cfg, testpaths: tests\n  91|     plugins: env-0.6.2, cov-2.9.0, asyncio-0.12.0\n  92|     collected 90 items\n  93| \n  94|     tests/test_api/test_errors/test_422_error.py .                                                                   [  1%]\n  95|     tests/test_api/test_errors/test_error.py .                                                                       [  2%]\n  96|     tests/test_api/test_routes/test_articles.py .................................                                    [ 38%]\n  97|     tests/test_api/test_routes/test_authentication.py ..                                                             [ 41%]\n  98|     tests/test_api/test_routes/test_comments.py ....                                                                 [ 45%]\n  99|     tests/test_api/test_routes/test_login.py ...                                                                     [ 48%]\n 100|     tests/test_api/test_routes/test_profiles.py ............                                                         [ 62%]\n 101|     tests/test_api/test_routes/test_registration.py ...                                                              [ 65%]\n 102|     tests/test_api/test_routes/test_tags.py ..                                                                       [ 67%]\n 103|     tests/test_api/test_routes/test_users.py ....................                                                    [ 90%]\n 104|     tests/test_db/test_queries/test_tables.py ...                                                                    [ 93%]\n 105|     tests/test_schemas/test_rw_model.py .                                                                            [ 94%]\n 106|     tests/test_services/test_jwt.py .....                                                                            [100%]\n 107| \n 108|     ============================================ 90 passed in 70.50s (0:01:10) =============================================\n 109|     $\n 110| \n 111| If you want to run a specific test, you can do this with `this\n 112| <https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests>`_ pytest feature: ::\n 113| \n 114|     $ pytest tests/test_api/test_routes/test_users.py::test_user_can_not_take_already_used_credentials\n 115| \n 116| Deployment with Docker\n 117| ----------------------\n 118| \n 119| You must have ``docker`` and ``docker-compose`` tools installed to work with material in this section.\n 120| First, create ``.env`` file like in `Quickstart` section or modify ``.env.example``.",
+        "note": "showing lines 1-120 of 157"
+      }
+    }
+  }
+}

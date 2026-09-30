@@ -20,6 +20,7 @@ sys.path.insert(0, str(EVAL.parent / "backend"))
 from app.agent.loop import Agent  # noqa: E402
 from app.graph.build import DEFAULT_WORKSPACE  # noqa: E402
 from app.graph.store import latest_graph  # noqa: E402
+from app.llm.base import LLMError  # noqa: E402
 from app.llm.ollama import OllamaProvider  # noqa: E402
 from app.toolfactory.factory import make_factory  # noqa: E402
 from app.tools.repo import LoadedRepo  # noqa: E402
@@ -60,7 +61,16 @@ def main() -> None:
             print(f"== {q['id']} run {run}: {q['question']}", flush=True)
             factory = make_factory(repo, llm, DEFAULT_WORKSPACE)  # fresh per run: no tools carried over
             agent = Agent(repo, llm, tool_factory=factory)
-            result = agent.run(q["question"])
+            try:
+                result = agent.run(q["question"])
+            except LLMError as err:  # e.g. a model call timing out: record it and carry on
+                print(f"   ERROR: {err}", flush=True)
+                (RESULTS / f"{q['id']}-run{run}.json").write_text(json.dumps(
+                    {"id": q["id"], "run": run, "question": q["question"], "error": str(err),
+                     "steps": [{"type": e.type, **e.data} for e in agent.events]}, indent=2, default=str),
+                    encoding="utf-8")
+                summary["runs"].append({"id": q["id"], "run": run, "error": str(err)})
+                continue
             created = [e.data for e in result.events if e.type == "tool_created"]
             record = {
                 "id": q["id"], "run": run, "question": q["question"], "expected": q["expected"],
