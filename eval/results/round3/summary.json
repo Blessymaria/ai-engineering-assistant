@@ -1,0 +1,32 @@
+{
+  "context": {
+    "model": "gemma4:e4b",
+    "machine": "Intel64 Family 6 Model 181 Stepping 0, GenuineIntel",
+    "os": "Windows-11-10.0.26200-SP0",
+    "assistant_commit": "7cf92412a1976ba29c229f1cb05b238aeb47edd4",
+    "demo_repo": "fastapi-realworld-example-app",
+    "demo_commit": "029eb7781c60d5f563ee8990a0cbfb79b244538c",
+    "started": "2026-09-30 14:19:57"
+  },
+  "runs": [
+    {
+      "id": "Q4",
+      "run": 1,
+      "rounds": 3,
+      "seconds": 156.4,
+      "stopped": "answer",
+      "citations": {
+        "cited": [
+          "E1",
+          "E2",
+          "E3"
+        ],
+        "missing": [],
+        "valid": 3,
+        "total": 3
+      },
+      "tools_created": [],
+      "file": "Q4-run1.json"
+    }
+  ]
+}

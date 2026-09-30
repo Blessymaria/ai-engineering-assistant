@@ -140,3 +140,19 @@
   - In that run the model queried `callers` of `login` when asked what it calls, so the answer missed the calls and no diagram was drawn (nothing to draw). Model weakness to record in the evaluation.
   - `npm audit` reports `lodash-es` (via mermaid) advisories for `_.template`/`_.unset`, which this app never calls with untrusted input; the offered fix is a breaking forced downgrade, so not applied.
   - Next: phase 7, evaluation (8 questions) and README.
+- Follow-up fixes after first browser use: blank page in Edge (an effect returned `scrollIntoView`'s Promise, `61378d9`); the repository box was mistaken for the question box, now labelled (`7eaff3c`).
+
+## 2026-09-30 — Phase 7: evaluation and README
+- Changes: `eval/questions.json`, `eval/run_eval.py`, `eval/results/round{1,2,3}/`, `eval/RESULTS.md`, `README.md`; fixes in `backend/app/llm/ollama.py`, `backend/app/agent/evidence.py`, `backend/app/tools/{files,registry}.py`, `backend/app/toolfactory/factory.py` and tests.
+- Decisions:
+  - Question set (approved, with two swaps from the first draft): structure, nonexistent symbol, flow, runtime-only data, dependencies, implementation, documentation, git-history gap (run 3 times). Expected facts written from source and git and committed before any run (`d85885e`). The validation-failure case is covered by unit tests instead of a question.
+  - Each round is committed as it ran before any fix (`ad73a2d`, `5dfbb7b`); fixes only for bugs the evaluation exposed; nothing tuned to question wording.
+- Verified (full detail in `eval/RESULTS.md`): Q1-Q7 correct or mostly correct 2/7 in round 1, 5/7 in round 2; citation references valid 8/8 and 12/12, cited lines checked by hand; Q8 tools created 0/3 then 3/3, correct answer 0/3 then 1/3. `pytest` 141 passed, 1 skipped.
+- Bugs found by the evaluation and fixed:
+  1. **Ollama ran the model with a 4,096-token context and silently dropped the start of longer prompts** (system prompt and question); a 7,000-token probe was cut to 2,051 tokens. Now `num_ctx` 16,384; the server log shows `truncated = 0`. This affected every multi-step question since phase 4.
+  2. `read_file` returned 200 lines but the model saw 60 (Q7 missed README line 74); both are now 120.
+  3. Generated tools were tested on invented names (`some_function`) and always rejected; the tool-writer prompt now lists real functions from the loaded repository.
+  4. **A generated tool returned a hard-coded `count: 12345`** for "how many articles are stored?", passed every check, and the agent stated it as fact with a valid citation. Tools whose test run makes no `ctx` calls are now rejected (`7cf9241`). In round 3 the model took a different path (no gap), so the check was not exercised live; it is covered by `test_factory_rejects_tool_that_reads_nothing_from_ctx`.
+- Issues / next:
+  - Not fixed: generated tool logic varies (2/3 git-history tools used the file's last commit instead of the function's lines); no citations on overview questions; flow answers stop short; runtime-only questions never get the "cannot be known statically" explanation.
+  - Twice a single model call stalled for ~30 minutes while the laptop was unattended (power saving); the runner now records a failed question and continues.
