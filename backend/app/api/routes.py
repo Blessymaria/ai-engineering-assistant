@@ -1,4 +1,4 @@
-"""HTTP API: ask a question and stream the agent's events as Server-Sent Events."""
+"""HTTP API: load a repository, and ask questions with the agent's events streamed as Server-Sent Events."""
 
 import json
 import queue
@@ -11,7 +11,9 @@ from pydantic import BaseModel
 
 from app.agent.loop import Agent
 from app.graph.build import DEFAULT_WORKSPACE
-from app.graph.store import latest_graph
+from app.graph.store import graph_path, latest_graph, save_graph
+from app.ingest.loader import LoadError
+from app.ingest.paths import PathError, RepoTooLarge
 from app.llm.base import LLMError, LLMProvider
 from app.llm.ollama import OllamaProvider
 from app.toolfactory.factory import make_factory
@@ -40,6 +42,39 @@ def get_factory(repo: LoadedRepo, llm: LLMProvider):
     return make_factory(repo, llm, DEFAULT_WORKSPACE)
 
 
+def repo_summary(repo: LoadedRepo) -> dict:
+    kinds: dict[str, int] = {}
+    for _, kind in repo.graph.nodes(data="kind"):
+        kinds[kind] = kinds.get(kind, 0) + 1
+    return {"name": repo.root.name, "root": str(repo.root), "commit": repo.graph.graph.get("commit"),
+            "files": len(repo.files), "nodes": repo.graph.number_of_nodes(), "edges": repo.graph.number_of_edges(),
+            "kinds": kinds}
+
+
+class RepoRequest(BaseModel):
+    source: str
+
+
+@router.get("/repo")
+def current_repo() -> dict:
+    return repo_summary(get_repo())
+
+
+@router.post("/repo")
+def load_repository(body: RepoRequest) -> dict:
+    """Clone (Git URL) or open (local path) a repository, build and save its graph, and switch to it."""
+    source = body.source.strip()
+    if not source:
+        raise HTTPException(422, "source is empty")
+    try:
+        repo = LoadedRepo.build(source, DEFAULT_WORKSPACE)
+    except (LoadError, RepoTooLarge, PathError) as err:
+        raise HTTPException(400, str(err)) from err
+    save_graph(repo.graph, graph_path(DEFAULT_WORKSPACE, repo.root, repo.graph.graph.get("commit")))
+    _state["repo"] = repo
+    return repo_summary(repo)
+
+
 class AskRequest(BaseModel):
     question: str
 
@@ -66,6 +101,8 @@ def ask(body: AskRequest) -> StreamingResponse:
                                      "gaps": [asdict(g) for g in result.gaps], "evidence": evidence}))
         except LLMError as err:
             events.put(_sse("error", {"message": str(err)}))
+        except Exception as err:  # never leave the browser waiting on a dead stream
+            events.put(_sse("error", {"message": f"internal error: {type(err).__name__}: {err}"}))
         finally:
             events.put(done)
 

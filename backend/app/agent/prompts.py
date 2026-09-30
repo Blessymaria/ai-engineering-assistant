@@ -8,7 +8,7 @@ Rules:
 - If a tool result lists several items (callers, importers, files), mention every one of them in your answer.
 - If no tool can get information you need (for example git history), call report_capability_gap instead of guessing.
 - When you have enough, answer in Markdown without calling a tool.
-- For an execution flow, describe every call in order (including service and helper calls) and always end with a Mermaid flowchart using only functions you saw; draw ambiguous or unresolved calls as dashed lines (-.->)."""
+- For an execution flow, describe every call in order (including service and helper calls). A diagram of the calls you followed with query_graph is added automatically, so do not draw one."""
 
 NO_TOOL_YET = "You have not looked at the code yet. Call a tool first, then answer from its results."
 

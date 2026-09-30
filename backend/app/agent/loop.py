@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from app.agent.actions import GAP_TOOL, GAP_TOOL_NAME, CapabilityGap, FinalAnswer, Invalid, ToolCall, parse_reply
+from app.agent.diagram import build_mermaid
 from app.agent.evidence import EvidenceStore, check_citations, compact
 from app.agent.prompts import (GAP_FAILED, GAP_LIMIT, GAP_UNAVAILABLE, LIMIT_REACHED, NO_TOOL_YET, SYSTEM_PROMPT,
                                TOOL_CREATED)
@@ -36,6 +37,7 @@ class AgentResult:
     gaps: list[CapabilityGap]
     events: list[Event]
     seconds: float
+    diagram: str | None = None  # Mermaid built from the visited graph
 
 
 @dataclass
@@ -147,9 +149,10 @@ class Agent:
             if isinstance(action, FinalAnswer):
                 answer = action.text or "(the model returned an empty answer)"
                 citations = check_citations(answer, store)
-                self._emit("answer", text=answer, citations=citations, rounds=rounds)
+                diagram = build_mermaid(store)
+                self._emit("answer", text=answer, citations=citations, rounds=rounds, diagram=diagram)
                 return AgentResult(answer, citations, store, rounds, "limit" if forced else "answer", gaps,
-                                   self.events, round(time.perf_counter() - start, 1))
+                                   self.events, round(time.perf_counter() - start, 1), diagram)
 
             rounds += 1
             if isinstance(action, ToolCall):
