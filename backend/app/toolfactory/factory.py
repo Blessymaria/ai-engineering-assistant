@@ -61,6 +61,7 @@ There are no other ctx methods.
 
 Rules: only import {imports} (inside the body). Do not use open, eval, exec, getattr, os, sys, subprocess,
 or any name with double underscores. Keep the body under 25 lines. Read inputs from `args`.
+Never return made-up, simulated or placeholder values: every value must come from ctx.
 Do not catch exceptions: let errors propagate. Take the kind of input the agent has: if the example input
 is a function or class name, accept that name and find its file and lines with ctx.list_nodes or
 ctx.search_code (nodes have "path", "line" and "end"). example_input must use a name that exists in THIS
@@ -190,6 +191,11 @@ class ToolFactory:
         if not isinstance(outcome.result, dict) or not outcome.result:
             return None, [f"run() must return a non-empty dict, got {type(outcome.result).__name__}: "
                           f"{json.dumps(outcome.result)[:200]}"], test
+        if not outcome.ctx_calls:
+            # Found in evaluation: a tool returned a hard-coded "count": 12345 and passed every other check.
+            return None, ["the test run made no ctx calls, so its output cannot come from the repository. "
+                          "Tools must read data through ctx and must never return made-up or placeholder values; "
+                          "if ctx cannot provide the data, this capability cannot be built."], test
         if "error" in outcome.result:
             return None, [f"test run on example_input returned an error: {str(outcome.result['error'])[:300]}. "
                           "Use an example_input that exists in this repository, and do not catch exceptions."], test

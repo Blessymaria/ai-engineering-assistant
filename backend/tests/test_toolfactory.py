@@ -42,6 +42,11 @@ class FakeRunner:
         return self.results.pop(0)
 
 
+def ran(result):
+    """A successful fake run that read repository data through ctx, as real tools must."""
+    return RunResult(True, result, seconds=0.5, ctx_calls=[{"method": "git_log", "args": {"path": "svc.py"}}])
+
+
 def spec(**overrides):
     base = {"name": "function_history", "description": "Last commits touching a function",
             "input_schema": {"type": "object", "properties": {"symbol": {"type": "string"}},
@@ -155,7 +160,7 @@ def test_ctx_rejects_bad_requests(git_repo, method, args, message):
 
 def test_factory_creates_and_registers_tool(repo, tmp_path):
     llm = FakeLLM([spec()])
-    runner = FakeRunner([RunResult(True, {"path": "shop/services/orders.py", "commits": []}, seconds=0.5)])
+    runner = FakeRunner([ran({"path": "shop/services/orders.py", "commits": []})])
     factory = ToolFactory(llm, runner, ToolContext(repo), tmp_path)
     result = factory.create(GAP)
     assert result.tool is not None and result.tool.name == "function_history"
@@ -169,7 +174,7 @@ def test_factory_creates_and_registers_tool(repo, tmp_path):
 
 def test_prompt_lists_real_names_mentioned_first(repo, tmp_path):
     llm = FakeLLM([spec()])
-    factory = ToolFactory(llm, FakeRunner([RunResult(True, {"ok": 1})]), ToolContext(repo), tmp_path)
+    factory = ToolFactory(llm, FakeRunner([ran({"ok": 1})]), ToolContext(repo), tmp_path)
     names = factory.real_names(GAP)  # GAP.example_input is "create_order"
     assert names.splitlines()[0] == "- create_order (shop/services/orders.py:12-18)"
     factory.create(GAP)
@@ -178,7 +183,7 @@ def test_prompt_lists_real_names_mentioned_first(repo, tmp_path):
 
 def test_factory_retries_once_with_errors(repo, tmp_path):
     llm = FakeLLM([spec(code="import os\nreturn {}"), spec()])
-    runner = FakeRunner([RunResult(True, {"ok": 1})])
+    runner = FakeRunner([ran({"ok": 1})])
     result = ToolFactory(llm, runner, ToolContext(repo), tmp_path).create(GAP)
     assert result.tool is not None and len(result.attempts) == 2
     assert "import of 'os'" in llm.calls[1]["messages"][-1]["content"]
@@ -196,8 +201,23 @@ def test_factory_gives_up_after_retry(repo, tmp_path):
     assert json.loads((result.audit_dir / "validation.json").read_text())["created"] is False
 
 
+def test_factory_rejects_tool_that_reads_nothing_from_ctx(repo, tmp_path):
+    # Evaluation round 2, Q4: a generated tool returned a hard-coded count and was accepted.
+    fabricated = spec(name="count_table_records",
+                      input_schema={"type": "object", "properties": {"table_name": {"type": "string"}}},
+                      example_input={"table_name": "articles"},
+                      code='return {"table": args["table_name"], "count": 12345, "status": "success"}')
+    runner = FakeRunner([RunResult(True, {"table": "articles", "count": 12345, "status": "success"}),
+                         RunResult(True, {"table": "articles", "count": 12345, "status": "success"})])
+    llm = FakeLLM([fabricated, fabricated])
+    result = ToolFactory(llm, runner, ToolContext(repo), tmp_path).create(GAP)
+    assert result.tool is None
+    assert "made no ctx calls" in result.errors[0]
+    assert "made no ctx calls" in llm.calls[1]["messages"][-1]["content"]
+
+
 def test_factory_treats_error_result_as_failure(repo, tmp_path):
-    runner = FakeRunner([RunResult(True, {"error": "no such file"}), RunResult(True, {"error": "still"})])
+    runner = FakeRunner([ran({"error": "no such file"}), ran({"error": "still"})])
     result = ToolFactory(FakeLLM([spec(), spec()]), runner, ToolContext(repo), tmp_path).create(GAP)
     assert result.tool is None and "returned an error" in result.errors[0]
 
@@ -220,8 +240,8 @@ def test_agent_uses_created_tool(repo, tmp_path):
         LLMReply("", [ToolCallRequest("function_history", {"symbol": "create_order"})]),
         LLMReply("Last changed by Grace [E1]."),
     ])
-    runner = FakeRunner([RunResult(True, {"commits": [{"author": "Grace"}]}),
-                         RunResult(True, {"commits": [{"author": "Grace"}]})])
+    runner = FakeRunner([ran({"commits": [{"author": "Grace"}]}),
+                         ran({"commits": [{"author": "Grace"}]})])
     factory = ToolFactory(llm, runner, ToolContext(repo), tmp_path)
     result = Agent(repo, llm, tool_factory=factory).run("Who last changed create_order?")
     kinds = [e.type for e in result.events]
