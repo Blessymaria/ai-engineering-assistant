@@ -1,0 +1,98 @@
+[
+  {
+    "id": "Q1",
+    "type": "structure",
+    "question": "How is the project organised? What are the main packages and what does each do?",
+    "expected": [
+      "app/api: HTTP layer (routes, dependencies, errors)",
+      "app/core: configuration and settings, app events",
+      "app/db: database access (repositories, SQL queries, migrations)",
+      "app/models: domain models and request/response schemas",
+      "app/services: business helpers (articles, authentication, jwt, security)",
+      "tests/ holds the test suite"
+    ],
+    "tool_creation_expected": false
+  },
+  {
+    "id": "Q2",
+    "type": "uncertainty: nonexistent symbol",
+    "question": "What does the function delete_all_articles do?",
+    "expected": [
+      "States that no function named delete_all_articles exists in the repository",
+      "Invents no behaviour for it (may point to the real delete_article / delete_article_by_slug as the nearest match, clearly labelled)"
+    ],
+    "tool_creation_expected": false
+  },
+  {
+    "id": "Q3",
+    "type": "flow",
+    "question": "What happens when POST /articles is called?",
+    "expected": [
+      "Route POST /articles is handled by create_new_article (app/api/routes/articles/articles_resource.py)",
+      "Calls get_slug_for_article and check_article_exists (app/services/articles.py)",
+      "Raises HTTP 400 if an article with that slug already exists",
+      "Calls ArticlesRepository.create_article, which the graph marks as ambiguous (repository injected with Depends); should be flagged as not statically confirmed",
+      "create_article runs in a transaction: insert article, create missing tags, link tags, then load the article",
+      "Returns ArticleInResponse"
+    ],
+    "tool_creation_expected": false
+  },
+  {
+    "id": "Q4",
+    "type": "uncertainty: runtime-only information",
+    "question": "How many articles are stored in the database right now?",
+    "expected": [
+      "Explains that the number of stored articles is runtime data that static analysis of the code cannot establish",
+      "Gives no made-up number (may point to where articles are stored/queried, e.g. the articles table / ArticlesRepository)"
+    ],
+    "tool_creation_expected": false
+  },
+  {
+    "id": "Q5",
+    "type": "dependencies",
+    "question": "Which modules depend on app.db.repositories.articles?",
+    "expected": [
+      "app.services.articles",
+      "app.api.routes.articles.articles_common",
+      "app.api.routes.articles.articles_resource",
+      "app.api.dependencies.articles",
+      "tests.conftest",
+      "tests.test_api.test_routes.test_articles"
+    ],
+    "tool_creation_expected": false
+  },
+  {
+    "id": "Q6",
+    "type": "implementation",
+    "question": "How is the JWT token created, and where is it checked on incoming requests?",
+    "expected": [
+      "create_jwt_token (app/services/jwt.py:15) encodes the payload with jwt.encode and an expiry",
+      "create_access_token_for_user (app/services/jwt.py:27) wraps it for a User",
+      "Checked on requests in app/api/dependencies/authentication.py: the Authorization header is read and _get_current_user calls jwt.get_username_from_token (line 84)",
+      "get_username_from_token (app/services/jwt.py:35) decodes with jwt.decode"
+    ],
+    "tool_creation_expected": false
+  },
+  {
+    "id": "Q7",
+    "type": "documentation",
+    "question": "According to the README, how do I run the tests?",
+    "expected": [
+      "Tests live in the tests/ folder",
+      "Set the DATABASE_URL environment variable or database_url in app/core/settings/test.py",
+      "Run the pytest command"
+    ],
+    "tool_creation_expected": false
+  },
+  {
+    "id": "Q8",
+    "type": "capability gap: git history",
+    "question": "When was the create_article function in the articles repository last changed, and by whom?",
+    "expected": [
+      "Reports a capability gap (no core tool reads git history) and creates a tool",
+      "Last change to ArticlesRepository.create_article (app/db/repositories/articles.py:34-63): Nik, 2020-05-01, commit 155ac54 'change SQL queries processing with using aiosql and pypika (#35)'"
+    ],
+    "tool_creation_expected": true,
+    "runs": 3
+  }
+]
