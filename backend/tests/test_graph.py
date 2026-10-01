@@ -138,3 +138,10 @@ def test_save_and_load_roundtrip(graph, tmp_path):
     assert loaded.number_of_nodes() == graph.number_of_nodes()
     assert loaded.number_of_edges() == graph.number_of_edges()
     assert loaded.graph["root"] == graph.graph["root"]
+
+
+def test_flask_blueprint_prefixes(tmp_path):
+    # register_blueprint(url_prefix=...) on the app, and Blueprint(url_prefix=...) itself
+    flask_graph = build_graph(load_repo(str(Path(__file__).parent / "fixtures" / "flaskapp"), tmp_path))
+    routes = {d["name"] for _, d in flask_graph.nodes(data=True) if d["kind"] == "route"}
+    assert routes == {"GET /api/users/<int:id>", "GET|POST /auth/login"}

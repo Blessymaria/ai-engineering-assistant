@@ -133,17 +133,20 @@ def _router_prefixes(modules: dict[str, Module]) -> dict[str, str]:
     Prefixes that are not string constants (e.g. `settings.api_prefix`) are unknown and left out.
     """
     own = {f"{m.name}.{name}": prefix for m in modules.values() for name, prefix in m.routers.items()}
-    parent: dict[str, tuple[str, str]] = {}
+    parent: dict[str, tuple[str | None, str]] = {}
     for m in modules.values():
         for inc in m.includes:
             p, c = _router_id(inc.parent, m, modules, own), _router_id(inc.child, m, modules, own)
-            if p and c and c not in parent:
+            if c and c not in parent:
+                # p is None when mounted on the application object itself (Flask's app.register_blueprint)
                 parent[c] = (p, inc.prefix)
 
     def full(router: str, depth: int = 0) -> str:
         up = parent.get(router)
-        base = full(up[0], depth + 1) + up[1] if up and depth < 10 else ""
-        return base + own.get(router, "")
+        if not up or depth >= 10:
+            return own.get(router, "")
+        above = full(up[0], depth + 1) if up[0] else ""
+        return above + up[1] + own.get(router, "")
 
     return {router: full(router) for router in own}
 

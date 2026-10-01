@@ -111,18 +111,27 @@ def _str_kwarg(call: ast.Call, name: str) -> str:
     return ""
 
 
+ROUTER_CLASSES = ("APIRouter", "Blueprint")  # FastAPI, Flask
+INCLUDE_CALLS = ("include_router", "register_blueprint")
+
+
+def _prefix_kwarg(call: ast.Call) -> str:
+    return _str_kwarg(call, "prefix") or _str_kwarg(call, "url_prefix")  # FastAPI / Flask spelling
+
+
 def _collect_routers(module: Module) -> None:
-    """FastAPI routers and include_router() calls, used to build full route paths."""
+    """Routers (FastAPI APIRouter, Flask Blueprint) and how they are mounted, to build full route paths."""
     for node in module.tree.body:
         if (isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
-                and isinstance(node.value, ast.Call) and (_dotted(node.value.func) or "").endswith("APIRouter")):
-            module.routers[node.targets[0].id] = _str_kwarg(node.value, "prefix")
+                and isinstance(node.value, ast.Call)
+                and (_dotted(node.value.func) or "").endswith(ROUTER_CLASSES)):
+            module.routers[node.targets[0].id] = _prefix_kwarg(node.value)
     for node in ast.walk(module.tree):
         if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-                and node.func.attr == "include_router" and node.args):
+                and node.func.attr in INCLUDE_CALLS and node.args):
             parent, child = _dotted(node.func.value), _dotted(node.args[0])
             if parent and child:
-                module.includes.append(Include(parent, child, _str_kwarg(node, "prefix")))
+                module.includes.append(Include(parent, child, _prefix_kwarg(node)))
 
 
 def _route_of(decorator: ast.expr) -> tuple[str, str] | None:
