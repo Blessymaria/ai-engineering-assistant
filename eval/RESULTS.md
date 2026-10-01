@@ -73,6 +73,20 @@ Round 5 added, in code: an answer with no (valid) citations goes back once for a
 
 **Where this leaves things:** the safety measures held in every run after they were added (no invented value in the 10 runtime-question runs since round 3; since round 5 every answer that had evidence cites it; invalid paths refused). What did not improve with more prompt changes is how well the small model writes and uses tools, and whether it frames runtime questions correctly; each prompt change traded one behaviour for another. These are recorded as limitations rather than tuned further.
 
+### Unseen repositories (generality check, 2026-10-01)
+
+Everything above uses one demo repository, so the same assistant was run on two repositories it had never seen, chosen to differ from the demo: a library with no web routes and a Flask web app. Ground truth was checked in their source and git history; assistant @ `94e0720`.
+
+| Repository | Graph (built in ~2 s, 0 parse errors) | Question | Result |
+| --- | --- | --- | --- |
+| [pallets/itsdangerous](https://github.com/pallets/itsdangerous) @ `672971d` (library) | 15 modules, 106 functions, 0 routes, 61 doc sections; calls 36% resolved / 59% ambiguous / 5% unresolved | How does `TimedSerializer.loads` check that a token has not expired? | 🟡 Correct and every cited line accurate (`timed.py:204-220`): it calls `signer.unsign(..., max_age=...)` and re-raises `SignatureExpired`; did not follow the call to the age comparison itself (`timed.py:137-149`). 2 rounds, 108 s |
+| [miguelgrinberg/microblog](https://github.com/miguelgrinberg/microblog) @ `a975ef6` (Flask app) | 34 modules, 119 functions, 27 routes; calls 72% / 6% / 22% | What happens when a user submits a new post on the index page? | ✅ Every step matches `app/main/routes.py:25-40` (validate form, detect language, create `Post`, add and commit, flash, redirect); omits `@login_required`, cites the file without line numbers. 3 rounds, 205 s |
+| microblog | | When was the `follow` method in `app/models.py` last changed, and by whom? | ⚠️ Gap reported, tool created on the first attempt and used; reports the file's last change (Miguel Grinberg, 2017-11-01) and says it cannot tell when `follow` itself changed (truth: Miguel Grinberg, 2017-09-16). Honest, no invention. 2 rounds, 233 s |
+
+**Found and fixed while doing this:** Flask blueprint prefixes were not applied, so microblog's `/api/...` and `/auth/...` routes appeared without them. The parser now handles `Blueprint(url_prefix=...)` and `app.register_blueprint(..., url_prefix=...)` as it already did FastAPI's routers (`94e0720`, with a test).
+
+**What this shows:** ingestion, retrieval, citations and the tool pipeline work on unseen repositories with no changes; answer quality shows the same patterns as on the demo (correct and cited, sometimes stopping one call short; generated history tools working on the whole file instead of the function). Two unseen repositories is a smoke test, not a second evaluation.
+
 ## What the evaluation found, and what was fixed
 
 **Round 1 → round 2 (`4c5d0a2`):**
