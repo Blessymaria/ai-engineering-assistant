@@ -63,12 +63,36 @@ def test_no_graph_evidence_means_no_diagram(repo):
     assert build_mermaid(store) is None
 
 
+# --- suggested questions ----------------------------------------------------------
+
+def test_suggestions_name_real_things_in_the_repository(repo):
+    from app.api.suggest import suggest_questions
+    questions = suggest_questions(repo.graph)
+    assert questions[0].startswith("How is this project organised?")
+    assert "What happens when POST /shop/v1/orders is called?" in questions  # the route with the most calls
+    assert "What does create_order do, and which functions call it?" in questions  # most-called function
+    assert any(q.startswith("Which modules depend on shop.") for q in questions)
+    assert "When was the create_order function in shop/services/orders.py last changed, and by whom?" in questions
+    assert len(questions) <= 5
+
+
+def test_suggestions_without_routes_or_git(tmp_path):
+    from app.api.suggest import suggest_questions
+    (tmp_path / "lib.py").write_text("def helper():\n    return 1\n\ndef main():\n    return helper()\n")
+    graph = LoadedRepo.build(str(tmp_path), tmp_path / "ws").graph
+    graph.graph["commit"] = None
+    questions = suggest_questions(graph)
+    assert not any("happens when" in q or "last changed" in q for q in questions)
+    assert "What does helper do, and which functions call it?" in questions
+
+
 # --- repository endpoints -------------------------------------------------------
 
 def test_get_repo_summary(repo, monkeypatch):
     monkeypatch.setattr(routes, "_state", {"repo": repo})
     data = TestClient(app).get("/api/repo").json()
     assert data["name"] == "shop" and data["kinds"]["route"] == 2 and data["nodes"] > 20
+    assert data["suggestions"][0].startswith("How is this project organised?")
 
 
 def test_load_repo_builds_saves_and_switches(tmp_path, monkeypatch):

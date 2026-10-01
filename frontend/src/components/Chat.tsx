@@ -3,17 +3,9 @@ import type { Turn } from '../types'
 import Markdown from './Markdown'
 import Mermaid from './Mermaid'
 
-// Example questions for the demo repository (shown only when it is loaded); clicking one fills the question box
-const DEMO_REPO = 'fastapi-realworld-example-app'
-const EXAMPLES = [
-  'What happens when POST /articles is called?',
-  'Which modules depend on app.db.repositories.articles?',
-  'How is the JWT token created, and where is it checked on incoming requests?',
-  'When was the create_article function in app/db/repositories/articles.py last changed, and by whom?',
-]
-
 interface Props {
   repoName: string | null
+  suggestions: string[] // built by the backend from the loaded repository's own graph
   turns: Turn[]
   selected: number | null
   canAsk: boolean
@@ -23,7 +15,8 @@ interface Props {
   onStop: (turn: Turn) => void
 }
 
-export default function Chat({ repoName, turns, selected, canAsk, onAsk, onSelect, onCitation, onStop }: Props) {
+export default function Chat({ repoName, suggestions, turns, selected, canAsk, onAsk, onSelect, onCitation,
+                               onStop }: Props) {
   const [question, setQuestion] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
   const running = turns.find((t) => t.running)
@@ -44,11 +37,11 @@ export default function Chat({ repoName, turns, selected, canAsk, onAsk, onSelec
               Every answer cites the code it comes from. When the built-in tools are not enough, the assistant
               writes and tests a new tool for itself. Answers take a few minutes on this laptop.
             </p>
-            {canAsk && repoName === DEMO_REPO && (
+            {canAsk && suggestions.length > 0 && (
               <>
-                <div className="examples-label">Try one of these</div>
+                <div className="examples-label">Suggested from this repository's code</div>
                 <div className="examples">
-                  {EXAMPLES.map((example) => (
+                  {suggestions.map((example) => (
                     <button key={example} type="button" className="example" onClick={() => setQuestion(example)}>
                       {example}
                     </button>

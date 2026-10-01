@@ -94,6 +94,7 @@ export default function App() {
       <main className="layout">
         <Chat
           repoName={repo?.name ?? null}
+          suggestions={repo?.suggestions ?? []}
           turns={turns}
           selected={selected}
           canAsk={Boolean(repo) && !repoLoading}

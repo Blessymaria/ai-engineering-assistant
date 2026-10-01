@@ -6,6 +6,7 @@ export interface RepoSummary {
   nodes: number
   edges: number
   kinds: Record<string, number>
+  suggestions?: string[]
 }
 
 export interface Evidence {

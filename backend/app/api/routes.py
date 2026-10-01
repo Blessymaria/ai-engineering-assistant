@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.agent.loop import Agent
+from app.api.suggest import suggest_questions
 from app.graph.build import DEFAULT_WORKSPACE
 from app.graph.store import graph_path, latest_graph, save_graph
 from app.ingest.loader import LoadError
@@ -52,7 +53,7 @@ def repo_summary(repo: LoadedRepo) -> dict:
         kinds[kind] = kinds.get(kind, 0) + 1
     return {"name": repo.root.name, "root": str(repo.root), "commit": repo.graph.graph.get("commit"),
             "files": len(repo.files), "nodes": repo.graph.number_of_nodes(), "edges": repo.graph.number_of_edges(),
-            "kinds": kinds}
+            "kinds": kinds, "suggestions": suggest_questions(repo.graph)}
 
 
 class RepoRequest(BaseModel):
