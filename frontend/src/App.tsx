@@ -93,6 +93,7 @@ export default function App() {
       <RepoBar repo={repo} loading={repoLoading} error={repoError} onLoad={onLoad} />
       <main className="layout">
         <Chat
+          repoName={repo?.name ?? null}
           turns={turns}
           selected={selected}
           canAsk={Boolean(repo) && !repoLoading}

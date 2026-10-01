@@ -3,7 +3,17 @@ import type { Turn } from '../types'
 import Markdown from './Markdown'
 import Mermaid from './Mermaid'
 
+// Example questions for the demo repository (shown only when it is loaded); clicking one fills the question box
+const DEMO_REPO = 'fastapi-realworld-example-app'
+const EXAMPLES = [
+  'What happens when POST /articles is called?',
+  'Which modules depend on app.db.repositories.articles?',
+  'How is the JWT token created, and where is it checked on incoming requests?',
+  'When was the create_article function in app/db/repositories/articles.py last changed, and by whom?',
+]
+
 interface Props {
+  repoName: string | null
   turns: Turn[]
   selected: number | null
   canAsk: boolean
@@ -13,7 +23,7 @@ interface Props {
   onStop: (turn: Turn) => void
 }
 
-export default function Chat({ turns, selected, canAsk, onAsk, onSelect, onCitation, onStop }: Props) {
+export default function Chat({ repoName, turns, selected, canAsk, onAsk, onSelect, onCitation, onStop }: Props) {
   const [question, setQuestion] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
   const running = turns.find((t) => t.running)
@@ -28,10 +38,24 @@ export default function Chat({ turns, selected, canAsk, onAsk, onSelect, onCitat
     <section className="chat">
       <div className="messages">
         {turns.length === 0 && (
-          <div className="empty muted">
-            Ask about the loaded repository, for example: <i>What happens when POST /articles is called?</i>
-            <br />
-            Answers take a few minutes on a laptop CPU; the activity panel shows progress.
+          <div className="empty">
+            <h2>{repoName ? `Ask anything about ${repoName}` : 'Load a repository to begin'}</h2>
+            <p className="muted">
+              Every answer cites the code it comes from. When the built-in tools are not enough, the assistant
+              writes and tests a new tool for itself. Answers take a few minutes on this laptop.
+            </p>
+            {canAsk && repoName === DEMO_REPO && (
+              <>
+                <div className="examples-label">Try one of these</div>
+                <div className="examples">
+                  {EXAMPLES.map((example) => (
+                    <button key={example} type="button" className="example" onClick={() => setQuestion(example)}>
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
         {turns.map((turn) => (

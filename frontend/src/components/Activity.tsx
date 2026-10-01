@@ -16,7 +16,17 @@ interface Props {
 
 /** Shows actions only (tools, gaps, created tools), never model reasoning. */
 export default function Activity({ turn, onOpen }: Props) {
-  if (!turn) return <aside className="activity"><h2>Agent activity</h2><p className="muted">Ask a question to see each step.</p></aside>
+  if (!turn) {
+    return (
+      <aside className="activity">
+        <h2>Agent activity</h2>
+        <p className="muted">
+          Each step the agent takes appears here as it happens: searches, graph lookups, files read, capability gaps
+          and any tool it creates. Click a step to see its full result.
+        </p>
+      </aside>
+    )
+  }
   return (
     <aside className="activity">
       <h2>Agent activity</h2>
