@@ -58,6 +58,7 @@ export default function Chat({ repoName, suggestions, turns, selected, canAsk, o
             onClick={() => onSelect(turn.id)}
           >
             <div className="question">{turn.question}</div>
+            {turn.savedAt && <div className="saved-label">Reopened from history · saved {turn.savedAt}</div>}
             <div className="answer">
               {turn.answer && <Markdown text={turn.answer} onCitation={(id) => onCitation(turn, id)} />}
               {turn.diagram && (

@@ -169,3 +169,12 @@
   - Breeze: the TypeScript parser failed on its own outdated CA list (not the company proxy); `SSL_CERT_FILE` pointed at Ubuntu's bundle fixes it.
 - Verified: `pytest` 149 passed, 1 skipped; frontend build and lint clean. Round 4 (Q4 ×3): 0/3 invented, 0/3 correct framing. Round 5 (all, Q4/Q8 ×3): every Q1-Q7 answer cited; Q8 gap reported 0/3 (regression). Round 6 (Q8 ×3, Q4 ×3): gap 3/3, tool 3/3, correct 1/3; Q4 0/3 invented. Details in `eval/RESULTS.md`.
 - Issues / next: prompt tuning stopped, since each change traded one small-model behaviour for another (round 5). Remaining limitations: tool logic and tool use vary; runtime questions are not framed as "cannot be known"; one invented folder name in the structure answer. Single model calls stalled for 23 min to 2.5 h while the laptop was unattended.
+
+## 2026-10-07 — Saved answers and remembered repository
+- Changes: `backend/app/store/history.py` (new), `backend/app/api/routes.py` (save after each answer, `GET/DELETE /api/history`, `workspace/state.json`), `backend/tests/test_history.py`, `frontend/src/components/HistoryPanel.tsx` (new), `frontend/src/{App,events,api,types}.ts(x)`, `RepoBar`, `Chat`, `index.css`, `README.md`
+- Decisions (the user approved both after asking why nothing survived a restart):
+  - **Saved answers:** each finished answer is written to `workspace/history.db` (standard-library `sqlite3`, one table, git-ignored with the rest of `workspace/`). It stores the full event stream and evidence, so the UI reopens an answer by replaying the same events through the same reducer: steps, diagram and clickable citations look exactly as they did live, and the model is not called again. Cancelled runs are not saved.
+  - History is listed per repository (by root path); `?all=true` lists everything.
+  - **Remembered repository:** loading a repository writes its graph path to `workspace/state.json`; on restart the backend reopens that graph instead of the newest file in `workspace/graphs/`, falling back to the newest if the file is gone.
+  - Saved answers are not given to the model as conversation memory; each question is still answered on its own.
+- Verified: `pytest` 159 passed, 1 skipped; frontend build and lint clean. Live check on the demo repository: "Which function handles user login?" answered in 110 s and saved as conversation 1, then listed by `GET /api/history`.

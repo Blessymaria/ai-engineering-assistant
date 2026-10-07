@@ -1,4 +1,4 @@
-import type { RepoSummary } from './types'
+import type { HistoryRecord, HistorySummary, RepoSummary } from './types'
 
 async function errorText(res: Response): Promise<string> {
   try {
@@ -66,4 +66,21 @@ export async function streamAsk(
       if (data) onEvent({ type, data: JSON.parse(data) })
     }
   }
+}
+
+export async function listHistory(): Promise<HistorySummary[]> {
+  const res = await fetch('/api/history')
+  if (!res.ok) throw new Error(await errorText(res))
+  return res.json()
+}
+
+export async function getConversation(id: number): Promise<HistoryRecord> {
+  const res = await fetch(`/api/history/${id}`)
+  if (!res.ok) throw new Error(await errorText(res))
+  return res.json()
+}
+
+export async function deleteConversation(id: number): Promise<void> {
+  const res = await fetch(`/api/history/${id}`, { method: 'DELETE' })
+  if (!res.ok && res.status !== 404) throw new Error(await errorText(res))
 }

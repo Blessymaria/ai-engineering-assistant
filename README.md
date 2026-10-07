@@ -28,6 +28,7 @@ flowchart LR
 3. **Agent loop:** each model reply becomes exactly one action (tool call, capability gap, final answer or invalid). Full tool results are kept as evidence `E1, E2, ...`; the model sees compact versions. Answers cite evidence (`[E3, app/x.py:42]`), and the backend checks that every cited id exists.
 4. **Dynamic tools:** when the model reports a gap (e.g. "no tool reads git history"), the factory asks it to fill in the body of a fixed `run(args, ctx)` template. The code is statically checked (allowlisted imports, no `eval`/`exec`/`open`/`os`/`sys`/`subprocess`/dunders), then **test-run in a throwaway Docker container** on its own example input, with one retry on failure. A passing tool is registered for the session, and its code and validation record are saved under `workspace/tools/`. The tool reaches repository data only through `ctx` (the core tools, `list_nodes`, read-only `git_log` / `git_blame`), one JSON message per line.
 5. **UI:** one screen with a repository bar, a chat (Markdown, a Mermaid diagram of the calls the agent followed, clickable citations) and a live activity panel (each tool call, gap and created tool; click for full results or the generated code and its test run). For any loaded repository, five starting questions are suggested from its own graph (a real route, its most-called function, its most-imported module, and a git-history question), so an unfamiliar repository never starts from a blank page.
+6. **Saved answers:** every finished answer is saved to a local SQLite file (`workspace/history.db`) with its question, answer, diagram, citations, activity steps and evidence. **History** in the repository bar lists the saved answers for the loaded repository; opening one replays it exactly as it looked live, without calling the model again. The last loaded repository is remembered (`workspace/state.json`) and reopened when the backend restarts.
 
 ## Setup (Windows)
 
@@ -128,12 +129,13 @@ Six rounds were run on the demo repository; each was committed as it ran, before
 | Mermaid diagrams written by the model | Built in code from the graph edges the agent visited | The model never produced them; this also guarantees only visited nodes appear |
 | Repository bar shows indexing progress | A spinner while the graph builds (~5 s for the demo) | Simpler; indexing is fast at this size |
 | — (not in plan) | Stop button; local folders limited to allowed roots; generated tools must read data through `ctx` | Added after the final review and evaluation |
+| — (not in plan) | Saved answers in SQLite and a History panel; last repository remembered across restarts | Added on request so answers survive a restart; standard-library `sqlite3`, no new dependency |
 
 ## Assumptions
 
 - Python repositories only; parsing uses the standard `ast` module.
 - Small to medium repositories (the loader rejects more than 5,000 files; files over 1 MB and binaries are skipped).
-- One user and one repository at a time; each question is answered independently (no conversation memory).
+- One user and one repository at a time; each question is answered independently (no conversation memory). Answers are saved for reopening, not fed back to the model as context.
 - A local model is required rather than a hosted API; `gemma4:e4b` was chosen by a measured test (see DEVLOG): it made 6/6 correct single tool calls where `qwen3:4b` was inconsistent.
 - The analysed repository is trusted to be parsed but never executed; generated tools are untrusted and only run in containers.
 

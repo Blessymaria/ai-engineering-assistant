@@ -6,9 +6,11 @@ interface Props {
   loading: boolean
   error: string | null
   onLoad: (source: string) => void
+  historyCount: number
+  onHistory: () => void
 }
 
-export default function RepoBar({ repo, loading, error, onLoad }: Props) {
+export default function RepoBar({ repo, loading, error, onLoad, historyCount, onHistory }: Props) {
   const [source, setSource] = useState('')
   const [changing, setChanging] = useState(false)
   const kinds = repo?.kinds ?? {}
@@ -34,6 +36,9 @@ export default function RepoBar({ repo, loading, error, onLoad }: Props) {
             </span>
             <button type="button" className="link-button" onClick={() => setChanging(true)} disabled={loading}>
               Change
+            </button>
+            <button type="button" className="link-button" onClick={onHistory}>
+              History ({historyCount})
             </button>
           </div>
         )}

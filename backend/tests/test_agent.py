@@ -252,7 +252,8 @@ def test_old_results_shrink_to_summaries(repo):
 
 # --- API --------------------------------------------------------------------
 
-def test_ask_streams_events(repo, monkeypatch):
+def test_ask_streams_events(repo, monkeypatch, tmp_path):
+    monkeypatch.setattr(routes, "DEFAULT_WORKSPACE", tmp_path)  # history.db goes here, not the real workspace
     llm = FakeLLM([call("search_code", query="create_order"), text("It is in orders.py [E1].")])
     monkeypatch.setattr(routes, "_state", {"repo": repo})
     monkeypatch.setattr(routes, "get_llm", lambda: llm)

@@ -56,6 +56,8 @@ export interface Turn {
   // Model time since the last step; attached to the next step that appears
   pendingModelSeconds?: number
   runId?: string // backend id, used to cancel
+  historyId?: number // id of the saved conversation, once stored
+  savedAt?: string // set when the turn was reopened from history
   stopping?: boolean
   cancelled?: boolean
 }
@@ -64,4 +66,23 @@ export interface DetailView {
   title: string
   body: string
   language?: 'json' | 'python' | 'text'
+}
+
+export interface HistorySummary {
+  id: number
+  created_at: string
+  repo_name: string
+  repo_commit: string | null
+  question: string
+  stopped: string
+  rounds: number
+  seconds: number
+}
+
+export interface HistoryRecord extends HistorySummary {
+  answer: string
+  diagram: string | null
+  citations: Citations
+  events: { type: string; data: Record<string, unknown> }[]
+  evidence: Record<string, Evidence>
 }

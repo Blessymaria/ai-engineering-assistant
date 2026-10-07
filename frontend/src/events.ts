@@ -99,6 +99,7 @@ export function applyEvent(turn: Turn, event: AgentEvent): Turn {
         evidence: (d.evidence as Record<string, Evidence>) ?? {},
         seconds: Number(d.seconds ?? 0),
         rounds: Number(d.rounds ?? 0),
+        historyId: typeof d.history_id === 'number' ? d.history_id : undefined,
       }
     case 'error':
       return {

@@ -20,6 +20,7 @@ from app.ingest.loader import LoadError
 from app.ingest.paths import PathError, RepoTooLarge
 from app.llm.base import LLMError, LLMProvider
 from app.llm.ollama import OllamaProvider
+from app.store.history import HistoryStore
 from app.toolfactory.factory import make_factory
 from app.tools.repo import LoadedRepo
 
@@ -30,9 +31,37 @@ _state: dict = {"repo": None}
 _runs: dict[str, threading.Event] = {}  # running question id -> cancel flag
 
 
+_histories: dict[Path, HistoryStore] = {}
+
+
+def get_history() -> HistoryStore:
+    path = DEFAULT_WORKSPACE / "history.db"
+    if path not in _histories:
+        _histories[path] = HistoryStore(path)
+    return _histories[path]
+
+
+def _state_file() -> Path:
+    return DEFAULT_WORKSPACE / "state.json"
+
+
+def remember_graph(graph_file: Path) -> None:
+    """Remember the repository in use, so a restart reopens it (not just the newest graph built)."""
+    _state_file().parent.mkdir(parents=True, exist_ok=True)
+    _state_file().write_text(json.dumps({"graph": str(graph_file)}), encoding="utf-8")
+
+
+def remembered_graph() -> Path | None:
+    try:
+        path = Path(json.loads(_state_file().read_text(encoding="utf-8"))["graph"])
+    except (OSError, ValueError, KeyError):
+        return None
+    return path if path.is_file() else None
+
+
 def get_repo() -> LoadedRepo:
     if _state["repo"] is None:
-        graph_file = latest_graph(DEFAULT_WORKSPACE)
+        graph_file = remembered_graph() or latest_graph(DEFAULT_WORKSPACE)
         if graph_file is None:
             raise HTTPException(409, "no repository loaded; build a graph first")
         _state["repo"] = LoadedRepo.from_graph_file(graph_file)
@@ -97,7 +126,9 @@ def load_repository(body: RepoRequest) -> dict:
         repo = LoadedRepo.build(source, DEFAULT_WORKSPACE)
     except (LoadError, RepoTooLarge, PathError) as err:
         raise HTTPException(400, str(err)) from err
-    save_graph(repo.graph, graph_path(DEFAULT_WORKSPACE, repo.root, repo.graph.graph.get("commit")))
+    saved = graph_path(DEFAULT_WORKSPACE, repo.root, repo.graph.graph.get("commit"))
+    save_graph(repo.graph, saved)
+    remember_graph(saved)
     _state["repo"] = repo
     return repo_summary(repo)
 
@@ -123,13 +154,27 @@ def ask(body: AskRequest) -> StreamingResponse:
     events.put(_sse("run", {"run_id": run_id}))
 
     def work() -> None:
-        agent = Agent(repo, llm, on_event=lambda e: events.put(_sse(e.type, {**e.data, "t": e.t})),
-                      tool_factory=get_factory(repo, llm), should_stop=cancel.is_set)
+        recorded: list[dict] = []  # every event, kept so the conversation can be shown again later
+
+        def on_event(e) -> None:
+            data = {**e.data, "t": e.t}
+            recorded.append({"type": e.type, "data": data})
+            events.put(_sse(e.type, data))
+
+        agent = Agent(repo, llm, on_event=on_event, tool_factory=get_factory(repo, llm), should_stop=cancel.is_set)
         try:
             result = agent.run(body.question)
             evidence = {k: v.to_dict() for k, v in result.evidence.items.items()}
+            history_id = None
+            if result.stopped != "cancelled":
+                history_id = get_history().save(
+                    repo_name=repo.root.name, repo_root=str(repo.root), repo_commit=repo.graph.graph.get("commit"),
+                    model=llm.name, question=body.question, answer=result.answer, stopped=result.stopped,
+                    rounds=result.rounds, seconds=result.seconds, citations=result.citations,
+                    diagram=result.diagram, events=recorded, evidence=evidence)
             events.put(_sse("done", {"rounds": result.rounds, "seconds": result.seconds, "stopped": result.stopped,
-                                     "gaps": [asdict(g) for g in result.gaps], "evidence": evidence}))
+                                     "gaps": [asdict(g) for g in result.gaps], "evidence": evidence,
+                                     "history_id": history_id}))
         except LLMError as err:
             events.put(_sse("error", {"message": str(err)}))
         except Exception as err:  # never leave the browser waiting on a dead stream
@@ -149,6 +194,28 @@ def ask(body: AskRequest) -> StreamingResponse:
             _runs.pop(run_id, None)
 
     return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+@router.get("/history")
+def list_history(all: bool = False, limit: int = 50) -> list[dict]:
+    """Saved conversations, newest first: for the loaded repository, or for every repository with all=true."""
+    repo_root = None if all else str(get_repo().root)
+    return get_history().list(repo_root=repo_root, limit=limit)
+
+
+@router.get("/history/{conversation_id}")
+def get_conversation(conversation_id: int) -> dict:
+    record = get_history().get(conversation_id)
+    if record is None:
+        raise HTTPException(404, "no saved conversation with that id")
+    return record
+
+
+@router.delete("/history/{conversation_id}")
+def delete_conversation(conversation_id: int) -> dict:
+    if not get_history().delete(conversation_id):
+        raise HTTPException(404, "no saved conversation with that id")
+    return {"deleted": conversation_id}
 
 
 @router.post("/ask/{run_id}/cancel")
