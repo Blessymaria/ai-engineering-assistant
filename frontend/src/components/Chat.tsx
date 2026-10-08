@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Turn } from '../types'
+import type { RepoIntro, Turn } from '../types'
 import Markdown from './Markdown'
 import Mermaid from './Mermaid'
 
 interface Props {
   repoName: string | null
   suggestions: string[] // built by the backend from the loaded repository's own graph
+  intro: RepoIntro | null
+  introLoading: boolean
   turns: Turn[]
   selected: number | null
   canAsk: boolean
@@ -15,8 +17,8 @@ interface Props {
   onStop: (turn: Turn) => void
 }
 
-export default function Chat({ repoName, suggestions, turns, selected, canAsk, onAsk, onSelect, onCitation,
-                               onStop }: Props) {
+export default function Chat({ repoName, suggestions, intro, introLoading, turns, selected, canAsk, onAsk, onSelect,
+                               onCitation, onStop }: Props) {
   const [question, setQuestion] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
   const running = turns.find((t) => t.running)
@@ -33,6 +35,21 @@ export default function Chat({ repoName, suggestions, turns, selected, canAsk, o
         {turns.length === 0 && (
           <div className="empty">
             <h2>{repoName ? `Ask anything about ${repoName}` : 'Load a repository to begin'}</h2>
+            {repoName && (introLoading || intro) && (
+              <div className="intro">
+                {intro ? (
+                  <>
+                    <p>{intro.text}</p>
+                    <span className="intro-label">
+                      {intro.source === 'model' ? 'Auto-generated summary, not checked against the code'
+                                                : 'Summary from the code map (model not reachable)'}
+                    </span>
+                  </>
+                ) : (
+                  <p className="muted">Writing a short introduction to this repository...</p>
+                )}
+              </div>
+            )}
             <p className="muted">
               Every answer cites the code it comes from. When the built-in tools are not enough, the assistant
               writes and tests a new tool for itself. Answers take a few minutes on this laptop.

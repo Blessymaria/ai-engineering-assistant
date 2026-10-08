@@ -86,3 +86,9 @@ export interface HistoryRecord extends HistorySummary {
   events: { type: string; data: Record<string, unknown> }[]
   evidence: Record<string, Evidence>
 }
+
+export interface RepoIntro {
+  text: string
+  source: 'model' | 'facts' // 'facts': the model was unreachable, so a plain sentence from the graph
+  cached: boolean
+}

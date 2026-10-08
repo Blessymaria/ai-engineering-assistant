@@ -178,3 +178,12 @@
   - **Remembered repository:** loading a repository writes its graph path to `workspace/state.json`; on restart the backend reopens that graph instead of the newest file in `workspace/graphs/`, falling back to the newest if the file is gone.
   - Saved answers are not given to the model as conversation memory; each question is still answered on its own.
 - Verified: `pytest` 159 passed, 1 skipped; frontend build and lint clean. Live check on the demo repository: "Which function handles user login?" answered in 110 s and saved as conversation 1, then listed by `GET /api/history`.
+
+## 2026-10-08 — Repository introduction after loading
+- Changes: `backend/app/api/intro.py` (new), `backend/app/api/routes.py` (`GET /api/repo/intro`), `backend/tests/test_intro.py`, `frontend/src/{App,api,types}.ts(x)`, `Chat.tsx`, `index.css`, `README.md`
+- Decisions (requested after the assignment: "a small 2-3 line intro to the repo" before the first question):
+  - One plain model call, no tools and no agent loop: the model gets facts from the graph (main third-party libraries from IMPORTS, excluding the standard library and test libraries; main packages, or subpackages when everything sits under one package such as `app/`; up to 10 routes grouped by path; counts) and the README start with image/badge/markup lines removed.
+  - Route names carry the domain best: the demo README says almost nothing beyond "passing Conduit testsuite", and with only top-level package `app` the first intro was vague ("a comprehensive, real-world example application").
+  - Not cited, so the UI labels it "Auto-generated summary, not checked against the code". Cached per repository and commit in `workspace/intros/`; when the model is unreachable a plain sentence from the facts is shown and nothing is cached, so the model is tried again next time. A lock stops two simultaneous requests from making two model calls.
+  - The UI fetches it after the repository appears, so loading is not slower; it shows only in the empty chat, before the first question.
+- Verified: `pytest` 164 passed, 1 skipped; frontend build and lint clean. Live on the four indexed repositories, 17-22 s each (7.7 s with the model already loaded, then instant from the cache). Demo: "...a full-featured web service with routes for managing users, articles, and tags. It is built using FastAPI, Starlette, Pydantic, and interacts with a PostgreSQL database via asyncpg and SQLAlchemy." (SQLAlchemy is only used by the Alembic migrations: the kind of imprecision the label warns about.)

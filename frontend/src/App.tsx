@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { cancelRun, deleteConversation, getConversation, getRepo, listHistory, loadRepo, streamAsk } from './api'
+import { cancelRun, deleteConversation, getConversation, getRepo, getRepoIntro, listHistory, loadRepo,
+  streamAsk } from './api'
 import Activity from './components/Activity'
 import Chat from './components/Chat'
 import Detail from './components/Detail'
 import HistoryPanel from './components/HistoryPanel'
 import RepoBar from './components/RepoBar'
 import { applyEvent } from './events'
-import type { DetailView, Evidence, HistorySummary, RepoSummary, Step, Turn } from './types'
+import type { DetailView, Evidence, HistorySummary, RepoIntro, RepoSummary, Step, Turn } from './types'
 
 let nextTurnId = 1
 
@@ -28,6 +29,24 @@ export default function App() {
   const [history, setHistory] = useState<HistorySummary[]>([])
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
+
+  // A short introduction to each repository, written by the model after loading (cached per commit)
+  const [introFor, setIntroFor] = useState<{ key: string; intro: RepoIntro | null } | null>(null)
+  const repoKey = repo ? `${repo.root}@${repo.commit}` : null
+  const introReady = introFor !== null && introFor.key === repoKey
+  const intro = introReady ? introFor.intro : null
+  const introLoading = repoKey !== null && !introReady
+
+  useEffect(() => {
+    if (!repoKey) return
+    let current = true
+    getRepoIntro()
+      .then((result) => current && setIntroFor({ key: repoKey, intro: result }))
+      .catch(() => current && setIntroFor({ key: repoKey, intro: null }))
+    return () => {
+      current = false
+    }
+  }, [repoKey])
 
   const refreshHistory = useCallback(() => {
     listHistory()
@@ -150,6 +169,8 @@ export default function App() {
         <Chat
           repoName={repo?.name ?? null}
           suggestions={repo?.suggestions ?? []}
+          intro={intro}
+          introLoading={introLoading}
           turns={turns}
           selected={selected}
           canAsk={Boolean(repo) && !repoLoading}

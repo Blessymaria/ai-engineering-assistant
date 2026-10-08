@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.agent.loop import Agent
+from app.api.intro import repo_intro
 from app.api.suggest import suggest_questions
 from app.graph.build import DEFAULT_WORKSPACE
 from app.graph.store import graph_path, latest_graph, save_graph
@@ -83,6 +84,12 @@ def repo_summary(repo: LoadedRepo) -> dict:
     return {"name": repo.root.name, "root": str(repo.root), "commit": repo.graph.graph.get("commit"),
             "files": len(repo.files), "nodes": repo.graph.number_of_nodes(), "edges": repo.graph.number_of_edges(),
             "kinds": kinds, "suggestions": suggest_questions(repo.graph)}
+
+
+@router.get("/repo/intro")
+def current_repo_intro() -> dict:
+    """A 2-3 sentence introduction to the loaded repository (one short model call, cached per commit)."""
+    return repo_intro(get_repo(), get_llm(), DEFAULT_WORKSPACE)
 
 
 class RepoRequest(BaseModel):

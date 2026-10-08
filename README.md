@@ -29,6 +29,7 @@ flowchart LR
 4. **Dynamic tools:** when the model reports a gap (e.g. "no tool reads git history"), the factory asks it to fill in the body of a fixed `run(args, ctx)` template. The code is statically checked (allowlisted imports, no `eval`/`exec`/`open`/`os`/`sys`/`subprocess`/dunders), then **test-run in a throwaway Docker container** on its own example input, with one retry on failure. A passing tool is registered for the session, and its code and validation record are saved under `workspace/tools/`. The tool reaches repository data only through `ctx` (the core tools, `list_nodes`, read-only `git_log` / `git_blame`), one JSON message per line.
 5. **UI:** one screen with a repository bar, a chat (Markdown, a Mermaid diagram of the calls the agent followed, clickable citations) and a live activity panel (each tool call, gap and created tool; click for full results or the generated code and its test run). For any loaded repository, five starting questions are suggested from its own graph (a real route, its most-called function, its most-imported module, and a git-history question), so an unfamiliar repository never starts from a blank page.
 6. **Saved answers:** every finished answer is saved to a local SQLite file (`workspace/history.db`) with its question, answer, diagram, citations, activity steps and evidence. **History** in the repository bar lists the saved answers for the loaded repository; opening one replays it exactly as it looked live, without calling the model again. The last loaded repository is remembered (`workspace/state.json`) and reopened when the backend restarts.
+7. **Repository introduction:** after a repository loads, a 2-3 sentence introduction appears above the suggested questions. It comes from one short model call (no tools) over facts taken from the graph (main libraries, packages, routes) and the start of the README, takes about 10-25 s, and is cached per commit in `workspace/intros/`. If the model cannot be reached, a plain sentence built from the same facts is shown instead.
 
 ## Setup (Windows)
 
@@ -130,6 +131,7 @@ Six rounds were run on the demo repository; each was committed as it ran, before
 | Repository bar shows indexing progress | A spinner while the graph builds (~5 s for the demo) | Simpler; indexing is fast at this size |
 | — (not in plan) | Stop button; local folders limited to allowed roots; generated tools must read data through `ctx` | Added after the final review and evaluation |
 | — (not in plan) | Saved answers in SQLite and a History panel; last repository remembered across restarts | Added on request so answers survive a restart; standard-library `sqlite3`, no new dependency |
+| — (not in plan) | A 2-3 sentence introduction after loading a repository | Added after the assignment, on request; one model call, cached per commit |
 
 ## Assumptions
 
@@ -149,6 +151,7 @@ Six rounds were run on the demo repository; each was committed as it ran, before
 - **Static analysis:** dependency injection, polymorphism and reflection appear as ambiguous or unresolved calls; methods inherited from library classes (e.g. pydantic `from_orm`) are unresolved; route prefixes that come from runtime settings (the demo's `/api`) cannot be seen, so routes are shown without them.
 - **Retrieval is lexical,** so questions worded differently from the code may need extra search steps. There are no embeddings.
 - **Citation validation** confirms that cited evidence ids exist, not that the evidence supports each claim.
+- **The repository introduction is not cited:** it is a short summary written from graph facts and the README, labelled as auto-generated in the UI, and may be less precise than an answer (e.g. naming a library used only for migrations as the database layer).
 - **No login:** the backend is meant for one person on their own machine. It listens on `localhost` only, and the UI can load local folders only from `AIEA_ALLOWED_ROOTS`; within a loaded repository the agent can read any text file under 1 MB, and that text is sent to the local model.
 - **Stopping** takes effect between steps, so a model call already in progress (up to about a minute) finishes first.
 - **Isolation:** containers give real isolation for an MVP (no network, read-only filesystem, no repository mount, CPU/memory/process/time limits, all capabilities dropped) but not VM-level isolation. Generated tools last one session.
