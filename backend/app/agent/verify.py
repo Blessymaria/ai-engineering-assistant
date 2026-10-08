@@ -106,7 +106,9 @@ def check_answer(answer: str, store: EvidenceStore, repo: LoadedRepo) -> list[st
         looks_like_path = raw in quoted or raw.endswith("/") or raw.count("/") >= 2 or re.search(r"\.\w{1,5}$", raw)
         if not path or not looks_like_path:
             continue  # prose such as "request/response"
-        if path in files or path in folders or any(f.endswith("/" + path) or f == path for f in files):
+        # a name relative to a folder mentioned nearby ("contains `routes/`" under `app/api/`) is fine if any
+        # file or folder ends with it; a wrong full path ("app/db/models/") still matches nothing
+        if path in files or path in folders or any(p.endswith("/" + path) for p in files | folders):
             continue
         problems.append(f"names `{raw}`, which does not exist in the repository")
     return problems[:MAX_PROBLEMS]

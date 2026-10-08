@@ -63,6 +63,15 @@ def test_invented_paths_are_reported(repo):
         "names `shop/db/schema.py`, which does not exist in the repository"]
 
 
+def test_folder_named_relative_to_its_parent_is_not_reported(repo):
+    """Found in evaluation round 7: "`shop/` contains `services/` and `api/`" was wrongly reported."""
+    store = store_with(repo, ("list_files", {}))
+    answer = "`shop/` contains `services/`, `api/` and `db/`; but `shop/db/models/` and `widgets/` do not exist."
+    assert check_answer(answer, store, repo) == [
+        "names `shop/db/models/`, which does not exist in the repository",
+        "names `widgets/`, which does not exist in the repository"]
+
+
 class FakeLLM:
     name = "fake"
 
