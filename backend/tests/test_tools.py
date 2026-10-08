@@ -211,11 +211,20 @@ def test_demo_route_search(demo):
     assert handler["id"] == "app.api.routes.articles.articles_resource.create_new_article"
 
 
-def test_demo_flow_marks_injected_repository_ambiguous(demo):
-    result = run_tool(demo, "query_graph", {"node": "create_new_article", "relation": "callees"})
-    status = {r["id"]: r["status"] for r in result["results"]}
-    assert status["app.db.repositories.articles.ArticlesRepository.create_article"] == "ambiguous"
-    assert status["app.services.articles.check_article_exists"] == "resolved"
+def test_demo_flow_follows_the_injected_repository(demo):
+    """Multi-hop: route handler -> repository (injected as `articles_repo: ArticlesRepository = Depends(...)`)
+    -> its helpers. Before annotation-based resolution the walk stopped at the handler."""
+    result = run_tool(demo, "query_graph", {"node": "create_new_article", "relation": "callees", "depth": 3})
+    status = {r["id"]: (r["status"], r["depth"]) for r in result["results"]}
+    repo = "app.db.repositories.articles.ArticlesRepository"
+    assert status[f"{repo}.create_article"] == ("resolved", 1)
+    assert status["app.services.articles.check_article_exists"] == ("resolved", 1)
+    assert status[f"{repo}._link_article_with_tags"] == ("resolved", 2)  # inside the repository
+    assert status[f"{repo}.get_tags_for_article_by_slug"] == ("resolved", 3)
+    # self._tags_repo = TagsRepository(conn) in __init__
+    assert status["app.db.repositories.tags.TagsRepository.create_tags_that_dont_exist"][0] == "resolved"
+    # SQL queries loaded by aiosql at runtime are still honestly unresolved
+    assert status["unresolved:queries.create_new_article"][0] == "unresolved"
 
 
 def test_demo_read_and_list(demo):

@@ -145,3 +145,75 @@ def test_flask_blueprint_prefixes(tmp_path):
     flask_graph = build_graph(load_repo(str(Path(__file__).parent / "fixtures" / "flaskapp"), tmp_path))
     routes = {d["name"] for _, d in flask_graph.nodes(data=True) if d["kind"] == "route"}
     assert routes == {"GET /api/users/<int:id>", "GET|POST /auth/login"}
+
+
+# --- calls on objects whose class is written in the code ---------------------------
+
+TYPED_FILES = {
+    "app/__init__.py": "",
+    "app/repos.py": (
+        "class TagsRepo:\n"
+        "    def create_tags(self, tags):\n"
+        "        return tags\n\n\n"
+        "class ArticlesRepo:\n"
+        "    def __init__(self, conn):\n"
+        "        self._tags = TagsRepo()\n"
+        "        self.conn = conn\n\n"
+        "    def create(self, title):\n"
+        "        self._tags.create_tags([])\n"
+        "        return self.conn.execute(title)\n\n\n"
+        "class Store:\n"
+        "    def save(self, item):\n"
+        "        return item\n\n\n"
+        "class FastStore(Store):\n"
+        "    def save(self, item):\n"
+        "        return item\n"),
+    "app/routes.py": (
+        "from app.repos import ArticlesRepo, Store\n\n\n"
+        "def create_article(title, repo: ArticlesRepo, untyped):\n"
+        "    repo.create(title)\n"
+        "    untyped.create(title)\n"
+        "    return repo.missing(title)\n\n\n"
+        "def quoted(repo: 'ArticlesRepo'):\n"
+        "    return repo.create('x')\n\n\n"
+        "def store_item(store: Store):\n"
+        "    return store.save(1)\n"),
+}
+
+
+@pytest.fixture(scope="module")
+def typed_graph(tmp_path_factory):
+    root = tmp_path_factory.mktemp("typed")
+    for rel, text in TYPED_FILES.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+    return build_graph(load_repo(str(root), tmp_path_factory.mktemp("ws")))
+
+
+def calls_from(graph, caller):
+    return {(v, d["status"]) for u, v, d in graph.out_edges(caller, data=True) if d["kind"] == "CALLS"}
+
+
+def test_call_on_annotated_parameter_is_resolved(typed_graph):
+    calls = calls_from(typed_graph, "app.routes.create_article")
+    assert ("app.repos.ArticlesRepo.create", "resolved") in calls  # repo: ArticlesRepo
+    assert ("app.repos.ArticlesRepo.create", "resolved") in calls_from(typed_graph, "app.routes.quoted")  # 'ArticlesRepo'
+
+
+def test_unannotated_or_unknown_methods_stay_unconfirmed(typed_graph):
+    calls = calls_from(typed_graph, "app.routes.create_article")
+    # repo.create() is resolved; untyped.create() matches the method name only, so it stays ambiguous
+    assert {s for t, s in calls if t == "app.repos.ArticlesRepo.create"} == {"resolved", "ambiguous"}
+    assert not any("missing" in target and status == "resolved" for target, status in calls)
+
+
+def test_call_on_attribute_set_in_init_is_resolved(typed_graph):
+    calls = calls_from(typed_graph, "app.repos.ArticlesRepo.create")
+    assert ("app.repos.TagsRepo.create_tags", "resolved") in calls  # self._tags = TagsRepo()
+    assert not any(status == "resolved" and "execute" in target for target, status in calls)  # self.conn is unknown
+
+
+def test_overridden_method_stays_ambiguous(typed_graph):
+    # store: Store may be a FastStore at runtime, which overrides save()
+    assert calls_from(typed_graph, "app.routes.store_item") == {
+        ("app.repos.FastStore.save", "ambiguous"), ("app.repos.Store.save", "ambiguous")}
