@@ -135,6 +135,49 @@ def test_ctx_git_log_and_blame(git_repo):
         (1, "Ada", "add create"), (2, "Grace", "change create")]
 
 
+@pytest.fixture(scope="module")
+def history_repo(tmp_path_factory):
+    """create() is changed by Grace; later Lin changes delete() in the same file and Max adds lines above create(),
+    so the file's newest commits never touched create()."""
+    root = tmp_path_factory.mktemp("historyrepo")
+    env = {**os.environ, "GIT_COMMITTER_NAME": "ci", "GIT_COMMITTER_EMAIL": "ci@example.com"}
+
+    def commit(author, message, text):
+        (root / "svc.py").write_text(text)
+        subprocess.run(["git", "-C", str(root), "add", "."], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(root), "commit", "-q", "-m", message], check=True, capture_output=True,
+                       env={**env, "GIT_AUTHOR_NAME": author, "GIT_AUTHOR_EMAIL": f"{author.lower()}@example.com"})
+
+    subprocess.run(["git", "-C", str(root), "init", "-q"], check=True, capture_output=True)
+    commit("Ada", "add both", "def create():\n    return 1\n\n\ndef delete():\n    return 1\n")
+    commit("Grace", "change create", "def create():\n    return 2\n\n\ndef delete():\n    return 1\n")
+    commit("Lin", "change delete", "def create():\n    return 2\n\n\ndef delete():\n    return 3\n")
+    commit("Max", "add header", "import os\nimport re\n\n\ndef create():\n    return 2\n\n\ndef delete():\n    return 3\n")
+    return LoadedRepo.build(str(root), tmp_path_factory.mktemp("ws"))
+
+
+def test_function_history_ignores_other_functions_in_the_same_file(history_repo):
+    ctx = ToolContext(history_repo)
+    create = next(n for n in ctx.handle("list_nodes", {"kind": "function"}) if n["name"] == "create")
+    assert (create["line"], create["end"]) == (5, 6)  # moved down by Max's header
+    # The whole-file log answers with commits that never touched create(): the evaluation's wrong answer
+    assert [c["author"] for c in ctx.handle("git_log", {"path": "svc.py"})][:2] == ["Max", "Lin"]
+    history = ctx.handle("git_log_lines", {"path": "svc.py", "start": create["line"], "end": create["end"]})
+    assert [(c["author"], c["subject"]) for c in history] == [("Grace", "change create"), ("Ada", "add both")]
+    assert history[0]["date"] and len(history[0]["commit"]) == 12
+
+
+def test_git_log_lines_limits_and_errors(history_repo):
+    ctx = ToolContext(history_repo)
+    assert len(ctx.handle("git_log_lines", {"path": "svc.py", "start": 5, "end": 6, "limit": 1})) == 1
+    assert ctx.handle("git_log_lines", {"path": "svc.py", "start": 9, "end": 500})[0]["author"] == "Lin"  # end clamped
+    for args, message in [({"path": "svc.py", "start": 50, "end": 60}, "only 10 lines"),
+                          ({"path": "svc.py", "start": 3, "end": 1}, "start <= end"),
+                          ({"path": "../x.py", "start": 1, "end": 2}, "outside")]:
+        with pytest.raises(ToolError, match=message):
+            ctx.handle("git_log_lines", args)
+
+
 def test_ctx_core_tools_and_list_nodes(repo):
     ctx = ToolContext(repo)
     assert ctx.handle("search_code", {"query": "create_order"})["results"][0]["id"] == \
@@ -274,6 +317,17 @@ def test_container_runs_tool_with_ctx_calls(docker_runner):
     assert result.ok, result.error
     assert result.result == {"n": 3, "echo": "orders"}
     assert calls == [("search_code", {"query": "orders"})]
+
+
+def test_container_function_history_tool_end_to_end(docker_runner, history_repo):
+    """A tool written the way the prompt asks (find the symbol, then git_log_lines on its lines), run in the container."""
+    code = wrap_body('node = [n for n in ctx.list_nodes("function") if n["name"] == args["name"]][0]\n'
+                     'last = ctx.git_log_lines(node["path"], node["line"], node["end"], 1)[0]\n'
+                     'return {"author": last["author"], "date": last["date"]}')
+    result = docker_runner.run(code, {"name": "create"}, ToolContext(history_repo).handle)
+    assert result.ok, result.error
+    assert result.result["author"] == "Grace"
+    assert [c["method"] for c in result.ctx_calls] == ["list_nodes", "git_log_lines"]
 
 
 def test_container_has_no_network_and_readonly_fs(docker_runner):

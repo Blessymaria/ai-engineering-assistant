@@ -54,7 +54,8 @@ Example input from the agent: {example}
 - ctx.read_file(path, start=1, end=None) -> {{"content": "  12| code", "total_lines": n}}
 - ctx.list_files(path=".", depth=2) -> {{"entries": [{{"path", "type"}}, ...]}}
 - ctx.list_nodes(kind) -> [{{"id", "name", "path", "line", "end"}}, ...]   kind: module | class | function | route
-- ctx.git_log(path, limit=10) -> [{{"commit", "author", "email", "date", "subject"}}, ...]   newest first
+- ctx.git_log(path, limit=10) -> [{{"commit", "author", "email", "date", "subject"}}, ...]   newest first, whole file
+- ctx.git_log_lines(path, start, end, limit=10) -> same shape, newest first: only commits that changed those lines
 - ctx.git_blame(path, start, end) -> [{{"line", "commit", "author", "date", "summary", "text"}}, ...]
   one entry per line, in line order (not date order); ISO dates sort correctly as strings
 There are no other ctx methods.
@@ -63,7 +64,8 @@ Rules: only import {imports} (inside the body). Do not use open, eval, exec, get
 or any name with double underscores. Keep the body under 25 lines. Read inputs from `args`.
 Never return made-up, simulated or placeholder values: every value must come from ctx.
 If the capability is about one function or class, work on that symbol's own lines (its "line" to "end" from
-ctx.list_nodes), not on the whole file, and combine per-line results yourself (e.g. newest date wins).
+ctx.list_nodes), not on the whole file: for its history use ctx.git_log_lines(path, line, end), never
+ctx.git_log(path), which also lists commits that changed other functions in the same file.
 Do not catch exceptions: let errors propagate. Take the kind of input the agent has: if the example input
 is a function or class name, accept that name and find its file and lines with ctx.list_nodes or
 ctx.search_code (nodes have "path", "line" and "end"). example_input must use a name that exists in THIS

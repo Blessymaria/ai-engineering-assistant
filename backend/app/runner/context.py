@@ -1,7 +1,7 @@
 """Backend side of the ToolContext: the only route from a generated tool to repository data.
 
 Only allowlisted methods run; each validates its arguments like the core tools do.
-Git access is read-only (log and blame) and confined to the repository root.
+Git access is read-only (log, line-range log and blame) and confined to the repository root.
 """
 
 import re
@@ -17,12 +17,16 @@ NODE_KINDS = ("module", "class", "function", "route")
 MAX_GIT_LOG = 50
 MAX_BLAME_LINES = 300
 SHA_LINE_RE = re.compile(r"^([0-9a-f]{40}) (\d+) (\d+)")
+LOG_FORMAT = "%H%x1f%an%x1f%ae%x1f%aI%x1f%s"
 
 EXTRA_SCHEMAS = {
     "list_nodes": {"type": "object", "properties": {"kind": {"type": "string", "enum": list(NODE_KINDS)}},
                    "required": ["kind"]},
     "git_log": {"type": "object", "properties": {"path": {"type": "string"}, "limit": {"type": "integer"}},
                 "required": ["path"]},
+    "git_log_lines": {"type": "object", "properties": {"path": {"type": "string"}, "start": {"type": "integer"},
+                                                       "end": {"type": "integer"}, "limit": {"type": "integer"}},
+                      "required": ["path", "start", "end"]},
     "git_blame": {"type": "object", "properties": {"path": {"type": "string"}, "start": {"type": "integer"},
                                                    "end": {"type": "integer"}},
                   "required": ["path", "start", "end"]},
@@ -69,12 +73,35 @@ class ToolContext:
     def git_log(self, path: str, limit: int = 10) -> list[dict]:
         path = self._repo_path(path)
         limit = max(1, min(limit, MAX_GIT_LOG))
-        out = self._git(["log", f"-n{limit}", "--format=%H%x1f%an%x1f%ae%x1f%aI%x1f%s", "--", path])
+        out = self._git(["log", f"-n{limit}", f"--format={LOG_FORMAT}", "--", path])
+        return self._commits(out)
+
+    @staticmethod
+    def _commits(out: str) -> list[dict]:
         commits = []
         for line in out.splitlines():
+            if line.count("\x1f") != 4:
+                continue  # blank separator lines
             sha, author, email, date, subject = line.split("\x1f", 4)
             commits.append({"commit": sha[:12], "author": author, "email": email, "date": date, "subject": subject})
         return commits
+
+    def git_log_lines(self, path: str, start: int, end: int, limit: int = 10) -> list[dict]:
+        """Commits that changed lines start..end of path, newest first, following those lines as they move
+        within the file (`git log -L`): the history of one function, not of the whole file."""
+        path = normalise_path(path)
+        try:
+            target = check_readable(self.repo.root, path)
+        except PathError as err:
+            raise ToolError(str(err)) from err
+        if start < 1 or end < start:
+            raise ToolError("need 1 <= start <= end")
+        total = len(target.read_text(encoding="utf-8", errors="replace").splitlines())
+        if start > total:
+            raise ToolError(f"{path} has only {total} lines")
+        limit = max(1, min(limit, MAX_GIT_LOG))
+        out = self._git(["log", f"-n{limit}", "-s", f"--format={LOG_FORMAT}", "-L", f"{start},{min(end, total)}:{path}"])
+        return self._commits(out)
 
     def git_blame(self, path: str, start: int, end: int) -> list[dict]:
         path = normalise_path(path)

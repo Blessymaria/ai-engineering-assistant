@@ -48,6 +48,7 @@ class _Ctx:
     def list_files(self, path=None, depth=None): return self._call("list_files", path=path, depth=depth)
     def list_nodes(self, kind): return self._call("list_nodes", kind=kind)
     def git_log(self, path, limit=None): return self._call("git_log", path=path, limit=limit)
+    def git_log_lines(self, path, start, end, limit=None): return self._call("git_log_lines", path=path, start=start, end=end, limit=limit)
     def git_blame(self, path, start, end): return self._call("git_blame", path=path, start=start, end=end)
 
 first = json.loads(sys.stdin.readline())
