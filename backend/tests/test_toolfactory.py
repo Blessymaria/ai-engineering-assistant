@@ -26,7 +26,7 @@ class FakeLLM:
         self.calls = []
 
     def chat(self, messages, tools=None, max_tokens=1024, json_schema=None):
-        self.calls.append({"messages": messages, "json_schema": json_schema})
+        self.calls.append({"messages": messages, "json_schema": json_schema, "tools": tools})
         return self.replies.pop(0)
 
 
@@ -338,6 +338,40 @@ def test_agent_uses_created_tool(repo, tmp_path):
     assert result.answer == "Last changed by Grace [E1]." and result.citations["missing"] == []
     # calls: 0 agent, 1 factory, 2 agent right after creation (told about the new tool), 3 agent after using it
     assert "A new tool `function_history` was created" in llm.calls[2]["messages"][-1]["content"]
+
+
+def test_second_question_reuses_the_validated_tool(repo, tmp_path):
+    first_llm = FakeLLM([
+        LLMReply("", [ToolCallRequest("report_capability_gap", {
+            "missing_capability": "git history", "reason": "no git tool", "example_input": "create_order"})]),
+        spec(), LLMReply("", [ToolCallRequest("function_history", {"symbol": "create_order"})]),
+        LLMReply("Grace [E1]."),
+    ])
+    runner = FakeRunner([ran({"commits": [{"author": "Grace"}]}), ran({"commits": [{"author": "Grace"}]}),
+                         ran({"commits": [{"author": "Ada"}]})])
+    factory = ToolFactory(first_llm, runner, ToolContext(repo), tmp_path)
+    Agent(repo, first_llm, tool_factory=factory).run("Who last changed create_order?")
+
+    # Second question: the tool is offered from the start, so no gap, no generation, no factory model call
+    second_llm = FakeLLM([LLMReply("", [ToolCallRequest("function_history", {"symbol": "validate"})]),
+                          LLMReply("Ada [E1].")])
+    factory.llm = second_llm
+    result = Agent(repo, second_llm, tool_factory=factory, known_tools=dict(factory.created)).run(
+        "Who last changed validate?")
+    kinds = [e.type for e in result.events]
+    assert "gap_detected" not in kinds and "tool_generation_started" not in kinds
+    assert result.events[0].data["reused_tools"] == ["function_history"]
+    assert result.answer == "Ada [E1]." and len(second_llm.calls) == 2
+    assert "function_history" in {t["function"]["name"] for t in second_llm.calls[0]["tools"]}
+
+
+def test_route_keeps_one_factory_per_repository_and_commit(repo, monkeypatch):
+    from app.api import routes
+    made = []
+    monkeypatch.setattr(routes, "_factories", {})
+    monkeypatch.setattr(routes, "make_factory", lambda r, llm, ws: made.append(r) or ToolFactory(llm, None, None, ws))
+    first, second = routes.get_factory(repo, FakeLLM([])), routes.get_factory(repo, FakeLLM([]))
+    assert first is second and len(made) == 1
 
 
 # --- real container (skipped where the runner image is not available) ----------

@@ -68,14 +68,17 @@ def _call_message(name: str, args: dict) -> dict:
 class Agent:
     def __init__(self, repo: LoadedRepo, llm: LLMProvider, max_rounds: int = MAX_ROUNDS,
                  on_event: Callable[[Event], None] | None = None, tool_factory=None,
-                 should_stop: Callable[[], bool] | None = None):
+                 should_stop: Callable[[], bool] | None = None, known_tools: dict | None = None):
         self.repo = repo
         self.llm = llm
         self.max_rounds = max_rounds
         self.on_event = on_event
         self.should_stop = should_stop or (lambda: False)
         self.tool_factory = tool_factory  # app.toolfactory.factory.ToolFactory, or None to disable
-        self.generated: dict = {}  # name -> GeneratedTool, for this session
+        # name -> GeneratedTool: tools that passed validation for this repository earlier, plus new ones
+        self.generated: dict = dict(known_tools or {})
+        self.reused = sorted(self.generated)
+        self.created_count = 0
         self.events: list[Event] = []
 
     def _run_tool(self, name: str, args: dict) -> dict:
@@ -87,7 +90,7 @@ class Agent:
         """Create a tool for the gap if possible; return the message for the model."""
         if self.tool_factory is None:
             return GAP_UNAVAILABLE
-        if len(self.generated) >= MAX_CREATED_TOOLS:
+        if self.created_count >= MAX_CREATED_TOOLS:
             return GAP_LIMIT
         self._emit("tool_generation_started", round=rounds, missing_capability=gap.missing_capability)
         created = self.tool_factory.create(gap)
@@ -97,6 +100,7 @@ class Agent:
             return GAP_FAILED.format(errors="; ".join(created.errors)[:500])
         tool = created.tool
         self.generated[tool.name] = tool
+        self.created_count += 1
         self._emit("tool_created", round=rounds, name=tool.name, description=tool.description,
                    parameters=tool.parameters, code=tool.source, test_input=tool.example_input,
                    test_output=tool.test_output, attempts=len(created.attempts), seconds=created.seconds,
@@ -132,7 +136,8 @@ class Agent:
         rounds = 0
         nudged = False
         cite_checked = False
-        self._emit("started", question=question, model=self.llm.name, max_rounds=self.max_rounds)
+        self._emit("started", question=question, model=self.llm.name, max_rounds=self.max_rounds,
+                   reused_tools=self.reused)
 
         while True:
             if self.should_stop():

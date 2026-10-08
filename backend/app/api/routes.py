@@ -99,8 +99,19 @@ def get_llm() -> LLMProvider:
     return OllamaProvider()
 
 
+_factories: dict[tuple[str, str | None], object] = {}
+
+
 def get_factory(repo: LoadedRepo, llm: LLMProvider):
-    return make_factory(repo, llm, DEFAULT_WORKSPACE)
+    """One tool factory per repository and commit, so tools that passed validation are reused by later
+    questions instead of being generated again (2-5 minutes each on this laptop)."""
+    key = (str(repo.root), repo.graph.graph.get("commit"))
+    if _factories.get(key) is None:
+        _factories[key] = make_factory(repo, llm, DEFAULT_WORKSPACE)
+    factory = _factories[key]
+    if factory is not None:
+        factory.llm = llm
+    return factory
 
 
 def repo_summary(repo: LoadedRepo) -> dict:
@@ -201,7 +212,9 @@ def ask(body: AskRequest) -> StreamingResponse:
             recorded.append({"type": e.type, "data": data})
             events.put(_sse(e.type, data))
 
-        agent = Agent(repo, llm, on_event=on_event, tool_factory=get_factory(repo, llm), should_stop=cancel.is_set)
+        factory = get_factory(repo, llm)
+        agent = Agent(repo, llm, on_event=on_event, tool_factory=factory, should_stop=cancel.is_set,
+                      known_tools=dict(factory.created) if factory is not None else None)
         try:
             result = agent.run(body.question)
             evidence = {k: v.to_dict() for k, v in result.evidence.items.items()}
