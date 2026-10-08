@@ -1,0 +1,149 @@
+{
+  "gap": {
+    "missing_capability": "Git history (who changed what and when)",
+    "reason": "The available tools (search_code, query_graph, read_file, list_files) can only analyze the static source code structure and content, not the version control history (like commit logs) of the repository.",
+    "example_input": "git log -- function create_article in articles"
+  },
+  "created": true,
+  "tool": "git_history_for_symbol",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "symbol_name": {
+        "type": "string"
+      },
+      "symbol_kind": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "symbol_name",
+      "symbol_kind"
+    ]
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "spec": {
+        "name": "git_history_for_symbol",
+        "description": "Retrieves the Git history (who changed what and when) for a specific function or class.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "symbol_name": {
+              "type": "string",
+              "description": "The name of the function or class (e.g., create_article)."
+            },
+            "symbol_kind": {
+              "type": "string",
+              "description": "The kind of symbol (function or class)."
+            },
+            "file_path": {
+              "type": "string",
+              "description": "The file path where the symbol is located."
+            }
+          },
+          "required": [
+            "symbol_name",
+            "symbol_kind",
+            "file_path"
+          ]
+        },
+        "example_input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function",
+          "file_path": "app/db/repositories/articles.py"
+        },
+        "code": "import re\n\n# Attempt to parse the input to extract symbol name, kind, and path\n# Assuming agent input follows the pattern: <symbol_name> <symbol_kind> in <file_path>\n# We rely on the agent providing structured input matching the required schema.\n\nsymbol_name = args.get(\"symbol_name\")\nsymbol_kind = args.get(\"symbol_kind\")\nfile_path = args.get(\"file_path\")\n\nif not all([symbol_name, symbol_kind, file_path]):\n    return {\"error\": \"Missing required arguments: symbol_name, symbol_kind, and file_path must be provided.\"}\n\n# 1. Get node details to confirm line range\nnodes = ctx.list_nodes(symbol_kind)\nnode_info = next((n for n in nodes if n[\"name\"] == symbol_name and n[\"path\"] == file_path), None)\n\nif not node_info:\n    return {\"error\": f\"Symbol {symbol_name} of kind {symbol_kind} not found in {file_path}. Check symbol name or kind.\"}\n\nstart_line = node_info[\"line\"]\nend_line = node_info[\"end\"]\n\n# 2. Use git_log_lines to get commits affecting this specific range\nhistory = ctx.git_log_lines(file_path, start_line, end_line, limit=10)\n\n# 3. Format the output\nformatted_history = []\nfor commit in history:\n    formatted_history.append({\n        \"commit\": commit.get(\"commit\"),\n        \"author\": commit.get(\"author\"),\n        \"date\": commit.get(\"date\"),\n        \"subject\": commit.get(\"subject\")\n    })\n\nreturn {\"symbol\": symbol_name, \"file\": file_path, \"history\": formatted_history}"
+      },
+      "raw": null,
+      "errors": [
+        "the agent knows the function's name but not its file, so the tool must not require file_path: take the function name and find its path and lines with ctx.list_nodes."
+      ],
+      "test": {
+        "input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function",
+          "file_path": "app/db/repositories/articles.py"
+        }
+      },
+      "llm_seconds": 121.9
+    },
+    {
+      "attempt": 2,
+      "spec": {
+        "name": "git_history_for_symbol",
+        "description": "Retrieves the Git history (who changed what and when) for a specific function or class.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "symbol_name": {
+              "type": "string",
+              "description": "The name of the function or class (e.g., create_article)."
+            },
+            "symbol_kind": {
+              "type": "string",
+              "description": "The kind of symbol (function or class)."
+            }
+          },
+          "required": [
+            "symbol_name",
+            "symbol_kind"
+          ]
+        },
+        "example_input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function"
+        },
+        "code": "import re\n\nsymbol_name = args.get(\"symbol_name\")\nsymbol_kind = args.get(\"symbol_kind\")\n\nif not all([symbol_name, symbol_kind]):\n    return {\"error\": \"Missing required arguments: symbol_name and symbol_kind must be provided.\"}\n\n# 1. Find the node details (path, line, end) using list_nodes\nnodes = ctx.list_nodes(symbol_kind)\nnode_info = next((n for n in nodes if n[\"name\"] == symbol_name), None)\n\nif not node_info:\n    return {\"error\": f\"Symbol {symbol_name} of kind {symbol_kind} not found. Check symbol name or kind.\"}\n\nfile_path = node_info[\"path\"]\nstart_line = node_info[\"line\"]\nend_line = node_info[\"end\"]\n\n# 2. Use git_log_lines to get commits affecting this specific range\nhistory = ctx.git_log_lines(file_path, start_line, end_line, limit=10)\n\n# 3. Format the output\nformatted_history = []\nfor commit in history:\n    formatted_history.append({\n        \"commit\": commit.get(\"commit\"),\n        \"author\": commit.get(\"author\"),\n        \"date\": commit.get(\"date\"),\n        \"subject\": commit.get(\"subject\")\n    })\n\nreturn {\"symbol\": symbol_name, \"file\": file_path, \"history\": formatted_history}"
+      },
+      "raw": null,
+      "errors": [],
+      "test": {
+        "input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function"
+        },
+        "ok": true,
+        "output": {
+          "symbol": "create_article",
+          "file": "app/db/repositories/articles.py",
+          "history": [
+            {
+              "commit": "155ac54017a4",
+              "author": "Nik",
+              "date": "2020-05-01T12:31:05+03:00",
+              "subject": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "commit": "61bb195dac11",
+              "author": "Nik",
+              "date": "2019-11-18T03:23:23+03:00",
+              "subject": "RealWorld Refactoring (#7)"
+            }
+          ]
+        },
+        "error": null,
+        "seconds": 6.52,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          },
+          {
+            "method": "git_log_lines",
+            "args": {
+              "path": "app/db/repositories/articles.py",
+              "start": 34,
+              "end": 63,
+              "limit": 10
+            }
+          }
+        ]
+      },
+      "llm_seconds": 93.0
+    }
+  ]
+}

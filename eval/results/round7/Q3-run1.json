@@ -1,0 +1,264 @@
+{
+  "id": "Q3",
+  "run": 1,
+  "question": "What happens when POST /articles is called?",
+  "expected": [
+    "Route POST /articles is handled by create_new_article (app/api/routes/articles/articles_resource.py)",
+    "Calls get_slug_for_article and check_article_exists (app/services/articles.py)",
+    "Raises HTTP 400 if an article with that slug already exists",
+    "Calls ArticlesRepository.create_article, which the graph marks as ambiguous (repository injected with Depends); should be flagged as not statically confirmed",
+    "create_article runs in a transaction: insert article, create missing tags, link tags, then load the article",
+    "Returns ArticleInResponse"
+  ],
+  "answer": "The `POST /articles` endpoint is handled by the `create_new_article` function in `app/api/routes/articles/articles_resource.py` [E3, app/api/routes/articles/articles_resource.py:53].\n\nWhen this endpoint is called:\n1.  It expects a request body containing article data, which is validated against `ArticleInCreate` and is expected to be embedded under the alias `\"article\"` [E3, app/api/routes/articles/articles_resource.py:60].\n2.  It requires the current authenticated user, obtained via `get_current_user_authorizer()` [E3, app/api/routes/articles/articles_resource.py:61].\n3.  It depends on an instance of `ArticlesRepository`, which is provided by `get_repository(ArticlesRepository)` [E3, app/api/routes/articles/articles_resource.py:62].\n4.  It first calls `get_slug_for_article(article_create.title)` to generate a slug from the provided title [E3, app/api/routes/articles/articles_resource.py:64].\n5.  It checks if an article with that slug already exists by calling `check_article_exists(articles_repo, slug)` [E3, app/api/routes/articles/articles_resource.py:65]. If it exists, it raises an `HTTPException` with status 400 [E3, app/api/routes/articles/articles_resource.py:66-69].\n6.  If the slug is unique, it calls `articles_repo.create_article(...)` to persist the new article [E3, app/api/routes/articles/articles_resource.py:71]. This call passes the generated `slug`, the `title`, `description`, `body`, the `author` (the current user), and the `tags` [E3, app/api/routes/articles/articles_resource.py:72-77].\n7.  Finally, it returns the newly created article wrapped in `ArticleInResponse`, using `ArticleForResponse.from_orm(article)` to format the response [E3, app/api/routes/articles/articles_resource.py:79].",
+  "citations": {
+    "cited": [
+      "E3"
+    ],
+    "missing": [],
+    "valid": 1,
+    "total": 1,
+    "problems": []
+  },
+  "diagram": null,
+  "rounds": 3,
+  "seconds": 173.1,
+  "stopped": "answer",
+  "gaps": [],
+  "tools_created": [],
+  "tool_failures": [],
+  "steps": [
+    {
+      "type": "started",
+      "question": "What happens when POST /articles is called?",
+      "model": "gemma4:e4b",
+      "max_rounds": 12,
+      "reused_tools": []
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 35.3,
+      "tokens": 17,
+      "prompt_tokens": 895,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 1,
+      "tool": "search_code",
+      "args": {
+        "query": "POST /articles"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 1,
+      "tool": "search_code",
+      "evidence_id": "E1",
+      "summary": "search_code(query='POST /articles'): 91 matches; top: route:POST /articles -> app.api.routes.articles.articles_resource.create_new_article",
+      "ms": 5
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 18.0,
+      "tokens": 38,
+      "prompt_tokens": 1220,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 2,
+      "tool": "query_graph",
+      "args": {
+        "node": "app.api.routes.articles.articles_resource.create_new_article",
+        "relation": "callers"
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 2,
+      "tool": "query_graph",
+      "evidence_id": "E2",
+      "summary": "query_graph(node='app.api.routes.articles.articles_resource.create_new_article', relation='callers'): 0 callers of app.api.routes.articles.articles_resource.create_new_article",
+      "ms": 0
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 12.8,
+      "tokens": 32,
+      "prompt_tokens": 1320,
+      "done_reason": "stop"
+    },
+    {
+      "type": "tool_called",
+      "round": 3,
+      "tool": "read_file",
+      "args": {
+        "path": "app/api/routes/articles/articles_resource.py",
+        "start": 50
+      }
+    },
+    {
+      "type": "tool_result",
+      "round": 3,
+      "tool": "read_file",
+      "evidence_id": "E3",
+      "summary": "read_file(path='app/api/routes/articles/articles_resource.py', start=50): lines 50-120 of 120",
+      "ms": 0
+    },
+    {
+      "type": "llm_reply",
+      "seconds": 107.0,
+      "tokens": 512,
+      "prompt_tokens": 2426,
+      "done_reason": "stop"
+    },
+    {
+      "type": "answer",
+      "citations": {
+        "cited": [
+          "E3"
+        ],
+        "missing": [],
+        "valid": 1,
+        "total": 1,
+        "problems": []
+      },
+      "rounds": 3,
+      "diagram": null
+    }
+  ],
+  "evidence": {
+    "E1": {
+      "id": "E1",
+      "tool": "search_code",
+      "args": {
+        "query": "POST /articles"
+      },
+      "summary": "search_code(query='POST /articles'): 91 matches; top: route:POST /articles -> app.api.routes.articles.articles_resource.create_new_article",
+      "result": {
+        "query": "POST /articles",
+        "total": 91,
+        "results": [
+          {
+            "id": "route:POST /articles -> app.api.routes.articles.articles_resource.create_new_article",
+            "kind": "route",
+            "name": "POST /articles",
+            "path": "app/api/routes/articles/articles_resource.py",
+            "line": 53,
+            "score": 100
+          },
+          {
+            "id": "route:POST /articles/{slug}/favorite -> app.api.routes.articles.articles_common.mark_article_as_favorite",
+            "kind": "route",
+            "name": "POST /articles/{slug}/favorite",
+            "path": "app/api/routes/articles/articles_common.py",
+            "line": 47,
+            "score": 60.0
+          },
+          {
+            "id": "route:POST /articles/{slug}/comments -> app.api.routes.comments.create_comment_for_article",
+            "kind": "route",
+            "name": "POST /articles/{slug}/comments",
+            "path": "app/api/routes/comments.py",
+            "line": 40,
+            "score": 60.0
+          },
+          {
+            "id": "app.api.dependencies.articles",
+            "kind": "module",
+            "name": "app.api.dependencies.articles",
+            "path": "app/api/dependencies/articles.py",
+            "line": 1,
+            "score": 20.0
+          },
+          {
+            "id": "app.api.dependencies.articles.get_articles_filters",
+            "kind": "function",
+            "name": "get_articles_filters",
+            "path": "app/api/dependencies/articles.py",
+            "line": 21,
+            "score": 20.0
+          },
+          {
+            "id": "app.api.dependencies.articles.get_article_by_slug_from_path",
+            "kind": "function",
+            "name": "get_article_by_slug_from_path",
+            "path": "app/api/dependencies/articles.py",
+            "line": 37,
+            "score": 20.0
+          },
+          {
+            "id": "app.api.dependencies.articles.check_article_modification_permissions",
+            "kind": "function",
+            "name": "check_article_modification_permissions",
+            "path": "app/api/dependencies/articles.py",
+            "line": 51,
+            "score": 20.0
+          },
+          {
+            "id": "app.api.routes.articles",
+            "kind": "module",
+            "name": "app.api.routes.articles",
+            "path": "app/api/routes/articles/__init__.py",
+            "line": 1,
+            "score": 20.0
+          },
+          {
+            "id": "app.api.routes.articles.api",
+            "kind": "module",
+            "name": "app.api.routes.articles.api",
+            "path": "app/api/routes/articles/api.py",
+            "line": 1,
+            "score": 20.0
+          },
+          {
+            "id": "app.api.routes.articles.articles_common",
+            "kind": "module",
+            "name": "app.api.routes.articles.articles_common",
+            "path": "app/api/routes/articles/articles_common.py",
+            "line": 1,
+            "score": 20.0
+          }
+        ]
+      }
+    },
+    "E2": {
+      "id": "E2",
+      "tool": "query_graph",
+      "args": {
+        "node": "app.api.routes.articles.articles_resource.create_new_article",
+        "relation": "callers"
+      },
+      "summary": "query_graph(node='app.api.routes.articles.articles_resource.create_new_article', relation='callers'): 0 callers of app.api.routes.articles.articles_resource.create_new_article",
+      "result": {
+        "node": {
+          "id": "app.api.routes.articles.articles_resource.create_new_article",
+          "kind": "function",
+          "name": "create_new_article",
+          "path": "app/api/routes/articles/articles_resource.py",
+          "line": 59
+        },
+        "relation": "callers",
+        "depth": 1,
+        "results": []
+      }
+    },
+    "E3": {
+      "id": "E3",
+      "tool": "read_file",
+      "args": {
+        "path": "app/api/routes/articles/articles_resource.py",
+        "start": 50
+      },
+      "summary": "read_file(path='app/api/routes/articles/articles_resource.py', start=50): lines 50-120 of 120",
+      "result": {
+        "path": "app/api/routes/articles/articles_resource.py",
+        "start": 50,
+        "end": 120,
+        "total_lines": 120,
+        "content": "  50|     )\n  51| \n  52| \n  53| @router.post(\n  54|     \"\",\n  55|     status_code=status.HTTP_201_CREATED,\n  56|     response_model=ArticleInResponse,\n  57|     name=\"articles:create-article\",\n  58| )\n  59| async def create_new_article(\n  60|     article_create: ArticleInCreate = Body(..., embed=True, alias=\"article\"),\n  61|     user: User = Depends(get_current_user_authorizer()),\n  62|     articles_repo: ArticlesRepository = Depends(get_repository(ArticlesRepository)),\n  63| ) -> ArticleInResponse:\n  64|     slug = get_slug_for_article(article_create.title)\n  65|     if await check_article_exists(articles_repo, slug):\n  66|         raise HTTPException(\n  67|             status_code=status.HTTP_400_BAD_REQUEST,\n  68|             detail=strings.ARTICLE_ALREADY_EXISTS,\n  69|         )\n  70| \n  71|     article = await articles_repo.create_article(\n  72|         slug=slug,\n  73|         title=article_create.title,\n  74|         description=article_create.description,\n  75|         body=article_create.body,\n  76|         author=user,\n  77|         tags=article_create.tags,\n  78|     )\n  79|     return ArticleInResponse(article=ArticleForResponse.from_orm(article))\n  80| \n  81| \n  82| @router.get(\"/{slug}\", response_model=ArticleInResponse, name=\"articles:get-article\")\n  83| async def retrieve_article_by_slug(\n  84|     article: Article = Depends(get_article_by_slug_from_path),\n  85| ) -> ArticleInResponse:\n  86|     return ArticleInResponse(article=ArticleForResponse.from_orm(article))\n  87| \n  88| \n  89| @router.put(\n  90|     \"/{slug}\",\n  91|     response_model=ArticleInResponse,\n  92|     name=\"articles:update-article\",\n  93|     dependencies=[Depends(check_article_modification_permissions)],\n  94| )\n  95| async def update_article_by_slug(\n  96|     article_update: ArticleInUpdate = Body(..., embed=True, alias=\"article\"),\n  97|     current_article: Article = Depends(get_article_by_slug_from_path),\n  98|     articles_repo: ArticlesRepository = Depends(get_repository(ArticlesRepository)),\n  99| ) -> ArticleInResponse:\n 100|     slug = get_slug_for_article(article_update.title) if article_update.title else None\n 101|     article = await articles_repo.update_article(\n 102|         article=current_article,\n 103|         slug=slug,\n 104|         **article_update.dict(),\n 105|     )\n 106|     return ArticleInResponse(article=ArticleForResponse.from_orm(article))\n 107| \n 108| \n 109| @router.delete(\n 110|     \"/{slug}\",\n 111|     status_code=status.HTTP_204_NO_CONTENT,\n 112|     name=\"articles:delete-article\",\n 113|     dependencies=[Depends(check_article_modification_permissions)],\n 114|     response_class=Response,\n 115| )\n 116| async def delete_article_by_slug(\n 117|     article: Article = Depends(get_article_by_slug_from_path),\n 118|     articles_repo: ArticlesRepository = Depends(get_repository(ArticlesRepository)),\n 119| ) -> None:\n 120|     await articles_repo.delete_article(article=article)"
+      }
+    }
+  }
+}

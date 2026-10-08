@@ -1,0 +1,311 @@
+{
+  "gap": {
+    "missing_capability": "Git history (who changed a function and when)",
+    "reason": "The available tools (search_code, query_graph, read_file, list_files) can only read the current source code structure and content, not the historical metadata like commit logs, authors, or timestamps.",
+    "example_input": "git log -- function create_article in articles repository"
+  },
+  "created": true,
+  "tool": "get_function_history",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "symbol_name": {
+        "type": "string"
+      },
+      "symbol_kind": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "symbol_name",
+      "symbol_kind"
+    ]
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "spec": {
+        "name": "get_function_history",
+        "description": "Retrieves the commit history for a specific function or class.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "symbol_name": {
+              "type": "string",
+              "description": "The name of the function or class (e.g., create_article)."
+            },
+            "symbol_kind": {
+              "type": "string",
+              "description": "The kind of symbol (function or class)."
+            },
+            "repository_path": {
+              "type": "string",
+              "description": "The path to the file containing the symbol (e.g., app/db/repositories/articles.py)."
+            }
+          }
+        },
+        "example_input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function",
+          "repository_path": "app/db/repositories/articles.py"
+        },
+        "code": "import re\n\nargs = args\n\n# 1. Find the node details (path, line, end) for the given symbol\nnodes = []\nif args.get(\"symbol_kind\") == \"function\":\n    nodes = [n for n in ctx.list_nodes(\"function\") if n[\"name\"] == args.get(\"symbol_name\") and n[\"path\"] == args.get(\"repository_path\")]\nelif args.get(\"symbol_kind\") == \"class\":\n    nodes = [n for n in ctx.list_nodes(\"class\") if n[\"name\"] == args.get(\"symbol_name\") and n[\"path\"] == args.get(\"repository_path\")]\n\nif not nodes:\n    return {\"error\": f\"Symbol {args.get('symbol_name')} not found in {args.get('repository_path')} or wrong kind.\"} \n\nnode = nodes[0]\npath = node[\"path\"]\nstart_line = node[\"line\"]\nend_line = node[\"end\"]\n\n# 2. Use ctx.git_blame to get line-by-line history for the symbol's range\nblame_data = ctx.git_blame(path, start_line, end_line)\n\n# 3. Process blame data to summarize history per line\nhistory_summary = []\nfor entry in blame_data:\n    history_summary.append({\"line\": entry[\"line\"], \"author\": entry[\"author\"], \"date\": entry[\"date\"], \"summary\": entry[\"summary\"]})\n\n# 4. Return the structured history\nreturn {\"symbol\": args.get(\"symbol_name\"), \"path\": path, \"history\": history_summary}"
+      },
+      "raw": null,
+      "errors": [
+        "the agent knows the function's name but not its file, so the tool must not require repository_path: take the function name and find its path and lines with ctx.list_nodes."
+      ],
+      "test": {
+        "input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function",
+          "repository_path": "app/db/repositories/articles.py"
+        }
+      },
+      "llm_seconds": 111.4
+    },
+    {
+      "attempt": 2,
+      "spec": {
+        "name": "get_function_history",
+        "description": "Retrieves the commit history for a specific function or class by name.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "symbol_name": {
+              "type": "string",
+              "description": "The name of the function or class (e.g., create_article)."
+            },
+            "symbol_kind": {
+              "type": "string",
+              "description": "The kind of symbol (function or class)."
+            }
+          },
+          "required": [
+            "symbol_name",
+            "symbol_kind"
+          ]
+        },
+        "example_input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function"
+        },
+        "code": "import re\n\nargs = args\n\n# 1. Find the node details (path, line, end) for the given symbol\nnode = None\nif args.get(\"symbol_kind\") == \"function\":\n    nodes = [n for n in ctx.list_nodes(\"function\") if n[\"name\"] == args.get(\"symbol_name\")]\nelif args.get(\"symbol_kind\") == \"class\":\n    nodes = [n for n in ctx.list_nodes(\"class\") if n[\"name\"] == args.get(\"symbol_name\")]\n\nif nodes:\n    node = nodes[0]\nelse:\n    return {\"error\": f\"Symbol {args.get('symbol_name')} of kind {args.get('symbol_kind')} not found.\"}\n\npath = node[\"path\"]\nstart_line = node[\"line\"]\nend_line = node[\"end\"]\n\n# 2. Use ctx.git_blame to get line-by-line history for the symbol's range\nblame_data = ctx.git_blame(path, start_line, end_line)\n\n# 3. Process blame data to summarize history per line\nhistory_summary = []\nfor entry in blame_data:\n    history_summary.append({\"line\": entry[\"line\"], \"author\": entry[\"author\"], \"date\": entry[\"date\"], \"summary\": entry[\"summary\"]})\n\n# 4. Return the structured history\nreturn {\"symbol\": args.get(\"symbol_name\"), \"path\": path, \"history\": history_summary}"
+      },
+      "raw": null,
+      "errors": [],
+      "test": {
+        "input": {
+          "symbol_name": "create_article",
+          "symbol_kind": "function"
+        },
+        "ok": true,
+        "output": {
+          "symbol": "create_article",
+          "path": "app/db/repositories/articles.py",
+          "history": [
+            {
+              "line": 34,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 35,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 36,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 37,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 38,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 39,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 40,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 41,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 42,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 43,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 44,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 45,
+              "author": "Nik",
+              "date": "2020-05-01T09:31:05+00:00",
+              "summary": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "line": 46,
+              "author": "Nik",
+              "date": "2020-05-01T09:31:05+00:00",
+              "summary": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "line": 47,
+              "author": "Nik",
+              "date": "2020-05-01T09:31:05+00:00",
+              "summary": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "line": 48,
+              "author": "Nik",
+              "date": "2020-05-01T09:31:05+00:00",
+              "summary": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "line": 49,
+              "author": "Nik",
+              "date": "2020-05-01T09:31:05+00:00",
+              "summary": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "line": 50,
+              "author": "Nik",
+              "date": "2020-05-01T09:31:05+00:00",
+              "summary": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "line": 51,
+              "author": "Nik",
+              "date": "2020-05-01T09:31:05+00:00",
+              "summary": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "line": 52,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 53,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 54,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 55,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 56,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 57,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 58,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 59,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 60,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 61,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 62,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            },
+            {
+              "line": 63,
+              "author": "Nik",
+              "date": "2019-11-18T00:23:23+00:00",
+              "summary": "RealWorld Refactoring (#7)"
+            }
+          ]
+        },
+        "error": null,
+        "seconds": 6.7,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          },
+          {
+            "method": "git_blame",
+            "args": {
+              "path": "app/db/repositories/articles.py",
+              "start": 34,
+              "end": 63
+            }
+          }
+        ]
+      },
+      "llm_seconds": 92.6
+    }
+  ]
+}

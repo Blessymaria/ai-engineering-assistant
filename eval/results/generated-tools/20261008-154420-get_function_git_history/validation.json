@@ -1,0 +1,144 @@
+{
+  "gap": {
+    "missing_capability": "Git history (commit details like author and timestamp)",
+    "reason": "The available tools (search_code, query_graph, read_file, list_files) can only read the current source code structure and content, not the historical metadata like commit authors or timestamps.",
+    "example_input": "git log -- function create_article in articles"
+  },
+  "created": true,
+  "tool": "get_function_git_history",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "symbol_name": {
+        "type": "string"
+      },
+      "limit": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "symbol_name"
+    ]
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "spec": {
+        "name": "get_function_git_history",
+        "description": "Retrieves the git commit history for a specific function or class.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "symbol_name": {
+              "type": "string",
+              "description": "The name of the function or class (e.g., create_article)."
+            },
+            "file_path": {
+              "type": "string",
+              "description": "The path to the file containing the symbol (e.g., app/db/repositories/articles.py)."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "The maximum number of commits to retrieve."
+            }
+          },
+          "required": [
+            "symbol_name",
+            "file_path"
+          ]
+        },
+        "example_input": {
+          "symbol_name": "create_article",
+          "file_path": "app/db/repositories/articles.py",
+          "limit": 5
+        },
+        "code": "import re\n\nargs = args\n\n# 1. Find the node details (lines) for the given symbol\nnodes = ctx.list_nodes(\"function\")\nnode_info = next((n for n in nodes if n[\"name\"] == args[\"symbol_name\"] and n[\"path\"] == args[\"file_path\"]), None)\n\nif not node_info:\n    return {\"error\": f\"Could not find node {args['symbol_name']} in {args['file_path']}\"}\n\nstart_line = node_info[\"line\"]\nend_line = node_info[\"end\"]\n\n# 2. Use git_log_lines to get history specific to these lines\nhistory = ctx.git_log_lines(args[\"file_path\"], start_line, end_line, limit=args.get(\"limit\", 10))\n\n# 3. Format the output\nresults = []\nfor commit in history:\n    results.append({\n        \"commit\": commit[\"commit\"],\n        \"author\": commit[\"author\"],\n        \"date\": commit[\"date\"],\n        \"subject\": commit[\"subject\"]\n    })\n\nreturn {\"history\": results}"
+      },
+      "raw": null,
+      "errors": [
+        "the agent knows the function's name but not its file, so the tool must not require file_path: take the function name and find its path and lines with ctx.list_nodes."
+      ],
+      "test": {
+        "input": {
+          "symbol_name": "create_article",
+          "file_path": "app/db/repositories/articles.py",
+          "limit": 5
+        }
+      },
+      "llm_seconds": 96.4
+    },
+    {
+      "attempt": 2,
+      "spec": {
+        "name": "get_function_git_history",
+        "description": "Retrieves the git commit history for a specific function or class by name.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "symbol_name": {
+              "type": "string",
+              "description": "The name of the function or class (e.g., create_article)."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "The maximum number of commits to retrieve."
+            }
+          },
+          "required": [
+            "symbol_name"
+          ]
+        },
+        "example_input": {
+          "symbol_name": "create_article",
+          "limit": 5
+        },
+        "code": "import re\n\nargs = args\n\n# 1. Find the node details (lines) for the given symbol\nnodes = ctx.list_nodes(\"function\")\nnode_info = next((n for n in nodes if n[\"name\"] == args[\"symbol_name\"]), None)\n\nif not node_info:\n    return {\"error\": f\"Could not find node {args['symbol_name']}\"}\n\nfile_path = node_info[\"path\"]\nstart_line = node_info[\"line\"]\nend_line = node_info[\"end\"]\n\n# 2. Use git_log_lines to get history specific to these lines\nhistory = ctx.git_log_lines(file_path, start_line, end_line, limit=args.get(\"limit\", 10))\n\n# 3. Format the output\nresults = []\nfor commit in history:\n    results.append({\n        \"commit\": commit[\"commit\"],\n        \"author\": commit[\"author\"],\n        \"date\": commit[\"date\"],\n        \"subject\": commit[\"subject\"]\n    })\n\nreturn {\"history\": results}"
+      },
+      "raw": null,
+      "errors": [],
+      "test": {
+        "input": {
+          "symbol_name": "create_article",
+          "limit": 5
+        },
+        "ok": true,
+        "output": {
+          "history": [
+            {
+              "commit": "155ac54017a4",
+              "author": "Nik",
+              "date": "2020-05-01T12:31:05+03:00",
+              "subject": "change SQL queries processing with using aiosql and pypika (#35)"
+            },
+            {
+              "commit": "61bb195dac11",
+              "author": "Nik",
+              "date": "2019-11-18T03:23:23+03:00",
+              "subject": "RealWorld Refactoring (#7)"
+            }
+          ]
+        },
+        "error": null,
+        "seconds": 6.43,
+        "ctx_calls": [
+          {
+            "method": "list_nodes",
+            "args": {
+              "kind": "function"
+            }
+          },
+          {
+            "method": "git_log_lines",
+            "args": {
+              "path": "app/db/repositories/articles.py",
+              "start": 34,
+              "end": 63,
+              "limit": 5
+            }
+          }
+        ]
+      },
+      "llm_seconds": 73.5
+    }
+  ]
+}
