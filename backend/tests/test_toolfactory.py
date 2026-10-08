@@ -275,6 +275,51 @@ def test_factory_rejects_bad_specs(repo, tmp_path, reply, message):
     assert result.tool is None and any(message in e for e in result.errors)
 
 
+def _history_spec(**overrides):
+    return spec(input_schema={"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]},
+                example_input={"name": "create"}, **overrides)
+
+
+def test_factory_rejects_history_from_commits_that_did_not_touch_the_function(history_repo, tmp_path):
+    """The evaluation's wrong answer: a 'function history' tool reporting the file's newest commit."""
+    ctx = ToolContext(history_repo)
+    newest_in_file = ctx.handle("git_log", {"path": "svc.py"})[0]  # Max's header, not a change to create()
+    grace = ctx.handle("git_log_lines", {"path": "svc.py", "start": 5, "end": 6})[0]
+    llm = FakeLLM([_history_spec(), _history_spec()])
+    runner = FakeRunner([ran({"last_change": newest_in_file}), ran({"last_change": grace})])
+    gap = CapabilityGap("git history of a function", "no tool reads git", "when did create change")
+    result = ToolFactory(llm, runner, ctx, tmp_path).create(gap)
+    first = result.attempts[0]["errors"][0]
+    assert newest_in_file["commit"] in first and "did not change the lines of create" in first
+    assert "ctx.git_log_lines" in first  # the retry is told how to fix it
+    assert result.tool is not None and result.tool.test_output["last_change"]["author"] == "Grace"
+
+
+def test_history_check_ignores_tools_that_are_not_about_one_function(history_repo, tmp_path):
+    ctx = ToolContext(history_repo)
+    newest = ctx.handle("git_log", {"path": "svc.py"})[0]
+    whole_file = spec(input_schema={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
+                      example_input={"path": "svc.py"})
+    gap = CapabilityGap("git history of a file", "no tool reads git", "svc.py")
+    result = ToolFactory(FakeLLM([whole_file]), FakeRunner([ran({"last": newest})]), ctx, tmp_path).create(gap)
+    assert result.tool is not None  # a file's history may report any commit of the file
+
+
+def test_factory_rejects_path_inputs_when_the_agent_only_knows_a_function_name(history_repo, tmp_path):
+    """The evaluation's agent passed "articles" as a file path because the tool required one."""
+    needs_path = spec(input_schema={"type": "object", "properties": {"file_path": {"type": "string"},
+                                                                      "name": {"type": "string"}},
+                                    "required": ["file_path", "name"]},
+                      example_input={"file_path": "svc.py", "name": "create"})
+    ctx = ToolContext(history_repo)
+    by_name = CapabilityGap("git history of a function", "no tool reads git", "create in the service")
+    result = ToolFactory(FakeLLM([needs_path, needs_path]), FakeRunner([]), ctx, tmp_path).create(by_name)
+    assert result.tool is None and "must not require file_path" in result.errors[0]
+    with_path = CapabilityGap("git history of a function", "no tool reads git", "create in svc.py")
+    ok = ToolFactory(FakeLLM([needs_path]), FakeRunner([ran({"n": 1})]), ctx, tmp_path).create(with_path)
+    assert ok.tool is not None
+
+
 def test_agent_uses_created_tool(repo, tmp_path):
     llm = FakeLLM([
         LLMReply("", [ToolCallRequest("report_capability_gap", {

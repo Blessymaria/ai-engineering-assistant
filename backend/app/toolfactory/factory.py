@@ -16,6 +16,7 @@ from app.agent.actions import GAP_TOOL_NAME, CapabilityGap
 from app.llm.base import LLMProvider
 from app.runner.context import ToolContext
 from app.runner.docker import DockerRunner
+from app.toolfactory.checks import history_errors, path_input_errors
 from app.toolfactory.static_check import ALLOWED_IMPORTS, static_check
 from app.tools.registry import CORE_TOOLS, validate_args
 from app.tools.repo import ToolError
@@ -169,7 +170,7 @@ class ToolFactory:
         self.audit_root = audit_root
         self.created: dict[str, GeneratedTool] = {}
 
-    def _validate(self, spec: dict) -> tuple[GeneratedTool | None, list[str], dict]:
+    def _validate(self, spec: dict, gap: CapabilityGap | None = None) -> tuple[GeneratedTool | None, list[str], dict]:
         errors: list[str] = []
         name = str(spec.get("name", "")).strip()
         if not NAME_RE.match(name):
@@ -182,6 +183,7 @@ class ToolFactory:
             example = validate_args({**parameters, "additionalProperties": False}, dict(example))
         except ToolError as err:
             errors.append(f"example_input does not match input_schema: {err}")
+        errors += path_input_errors(self.ctx, gap, parameters)
         source = wrap_body(str(spec.get("code", "")))
         errors += static_check(source)
         test = {"input": example}
@@ -203,6 +205,9 @@ class ToolFactory:
         if "error" in outcome.result:
             return None, [f"test run on example_input returned an error: {str(outcome.result['error'])[:300]}. "
                           "Use an example_input that exists in this repository, and do not catch exceptions."], test
+        wrong_answer = history_errors(self.ctx, example, outcome.result, outcome.ctx_calls)
+        if wrong_answer:
+            return None, wrong_answer, test
         tool = GeneratedTool(name, str(spec.get("description", "")).strip()[:200] or name, parameters, source,
                              example, outcome.result, self.runner, self.ctx)
         return tool, [], test
@@ -240,7 +245,7 @@ class ToolFactory:
             except (json.JSONDecodeError, ValueError) as err:
                 spec, errors, test = {}, [f"reply is not valid JSON ({err}); was it cut off?"], {}
             else:
-                tool, errors, test = self._validate(spec)
+                tool, errors, test = self._validate(spec, gap)
             attempts.append({"attempt": attempt, "spec": spec, "raw": reply.content if not spec else None,
                              "errors": errors, "test": test, "llm_seconds": reply.seconds})
             if tool:

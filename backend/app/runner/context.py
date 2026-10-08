@@ -76,6 +76,10 @@ class ToolContext:
         out = self._git(["log", f"-n{limit}", f"--format={LOG_FORMAT}", "--", path])
         return self._commits(out)
 
+    def known_commits(self) -> set[str]:
+        """Every commit hash in the repository (for the factory's checks; not a ctx method)."""
+        return set(self._git(["log", "--all", "--format=%H"]).split())
+
     @staticmethod
     def _commits(out: str) -> list[dict]:
         commits = []
