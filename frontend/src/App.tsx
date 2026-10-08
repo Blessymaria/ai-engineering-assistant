@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { cancelRun, deleteConversation, getConversation, getRepo, getRepoIntro, listHistory, loadRepo,
+import { cancelRun, deleteConversation, getConversation, getRepo, getRepoIntro, listHistory, listRecentRepos, loadRepo,
   streamAsk } from './api'
 import Activity from './components/Activity'
 import Chat from './components/Chat'
@@ -7,7 +7,7 @@ import Detail from './components/Detail'
 import HistoryPanel from './components/HistoryPanel'
 import RepoBar from './components/RepoBar'
 import { applyEvent } from './events'
-import type { DetailView, Evidence, HistorySummary, RepoIntro, RepoSummary, Step, Turn } from './types'
+import type { DetailView, Evidence, HistorySummary, RecentRepo, RepoIntro, RepoSummary, Step, Turn } from './types'
 
 let nextTurnId = 1
 
@@ -48,6 +48,12 @@ export default function App() {
     }
   }, [repoKey])
 
+  const [recent, setRecent] = useState<RecentRepo[]>([])
+  const refreshRecent = useCallback(() => {
+    listRecentRepos().then(setRecent).catch(() => setRecent([]))
+  }, [])
+  useEffect(refreshRecent, [refreshRecent])
+
   const refreshHistory = useCallback(() => {
     listHistory()
       .then((items) => {
@@ -74,6 +80,7 @@ export default function App() {
       setTurns([])
       setSelected(null)
       refreshHistory()
+      refreshRecent()
     } catch (err) {
       setRepoError((err as Error).message)
     } finally {
@@ -164,7 +171,7 @@ export default function App() {
   return (
     <div className="app">
       <RepoBar repo={repo} loading={repoLoading} error={repoError} onLoad={onLoad}
-               historyCount={history.length} onHistory={() => { refreshHistory(); setHistoryOpen(true) }} />
+               recent={recent} historyCount={history.length} onHistory={() => { refreshHistory(); setHistoryOpen(true) }} />
       <main className="layout">
         <Chat
           repoName={repo?.name ?? null}

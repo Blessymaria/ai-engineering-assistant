@@ -279,3 +279,26 @@ pre, code { font-family: var(--mono); font-size: 12.5px; }
 .history-open:hover:not(:disabled) { background: var(--subtle); }
 .history-question { font-weight: 600; }
 .history-meta { font-size: 12px; color: var(--muted); }
+
+/* Recent repositories, listed under the repository input */
+.combo { position: relative; flex: 1; min-width: 0; display: flex; }
+.combo input { flex: 1; }
+.recent {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 20; list-style: none; margin: 0; padding: 6px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  max-height: 340px; overflow-y: auto; animation: fade 0.1s ease-out;
+}
+.recent-label {
+  padding: 6px 10px 4px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.recent-item { display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.recent-item.active { background: var(--accent-soft); }
+.recent-name { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); }
+.recent-source {
+  font-family: var(--mono); font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-current {
+  font-size: 10.5px; font-weight: 600; padding: 0 7px; border-radius: 999px; background: var(--ok-soft); color: var(--ok);
+}

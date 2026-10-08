@@ -92,3 +92,8 @@ export interface RepoIntro {
   source: 'model' | 'facts' // 'facts': the model was unreachable, so a plain sentence from the graph
   cached: boolean
 }
+
+export interface RecentRepo {
+  source: string // the Git URL or local folder as it was typed
+  name: string
+}

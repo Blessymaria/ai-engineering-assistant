@@ -1,4 +1,4 @@
-import type { HistoryRecord, HistorySummary, RepoIntro, RepoSummary } from './types'
+import type { HistoryRecord, HistorySummary, RecentRepo, RepoIntro, RepoSummary } from './types'
 
 async function errorText(res: Response): Promise<string> {
   try {
@@ -87,6 +87,12 @@ export async function deleteConversation(id: number): Promise<void> {
 
 export async function getRepoIntro(): Promise<RepoIntro> {
   const res = await fetch('/api/repo/intro')
+  if (!res.ok) throw new Error(await errorText(res))
+  return res.json()
+}
+
+export async function listRecentRepos(): Promise<RecentRepo[]> {
+  const res = await fetch('/api/repo/recent')
   if (!res.ok) throw new Error(await errorText(res))
   return res.json()
 }

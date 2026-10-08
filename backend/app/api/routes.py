@@ -46,18 +46,44 @@ def _state_file() -> Path:
     return DEFAULT_WORKSPACE / "state.json"
 
 
+MAX_RECENT = 8
+
+
+def _read_state() -> dict:
+    try:
+        state = json.loads(_state_file().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return state if isinstance(state, dict) else {}
+
+
+def _write_state(**changes) -> None:
+    _state_file().parent.mkdir(parents=True, exist_ok=True)
+    _state_file().write_text(json.dumps({**_read_state(), **changes}), encoding="utf-8")
+
+
 def remember_graph(graph_file: Path) -> None:
     """Remember the repository in use, so a restart reopens it (not just the newest graph built)."""
-    _state_file().parent.mkdir(parents=True, exist_ok=True)
-    _state_file().write_text(json.dumps({"graph": str(graph_file)}), encoding="utf-8")
+    _write_state(graph=str(graph_file))
 
 
 def remembered_graph() -> Path | None:
     try:
-        path = Path(json.loads(_state_file().read_text(encoding="utf-8"))["graph"])
-    except (OSError, ValueError, KeyError):
+        path = Path(_read_state()["graph"])
+    except (KeyError, TypeError):
         return None
     return path if path.is_file() else None
+
+
+def remember_source(source: str, name: str) -> None:
+    """Add a source that loaded successfully to the recent list (newest first, no duplicates)."""
+    recent = [r for r in recent_sources() if r["source"] != source]
+    _write_state(recent=[{"source": source, "name": name}, *recent][:MAX_RECENT])
+
+
+def recent_sources() -> list[dict]:
+    recent = _read_state().get("recent", [])
+    return [r for r in recent if isinstance(r, dict) and isinstance(r.get("source"), str)] if isinstance(recent, list) else []
 
 
 def get_repo() -> LoadedRepo:
@@ -84,6 +110,12 @@ def repo_summary(repo: LoadedRepo) -> dict:
     return {"name": repo.root.name, "root": str(repo.root), "commit": repo.graph.graph.get("commit"),
             "files": len(repo.files), "nodes": repo.graph.number_of_nodes(), "edges": repo.graph.number_of_edges(),
             "kinds": kinds, "suggestions": suggest_questions(repo.graph)}
+
+
+@router.get("/repo/recent")
+def recent_repositories() -> list[dict]:
+    """Sources (Git URLs or local folders) that loaded successfully, newest first."""
+    return recent_sources()
 
 
 @router.get("/repo/intro")
@@ -136,6 +168,7 @@ def load_repository(body: RepoRequest) -> dict:
     saved = graph_path(DEFAULT_WORKSPACE, repo.root, repo.graph.graph.get("commit"))
     save_graph(repo.graph, saved)
     remember_graph(saved)
+    remember_source(source, repo.root.name)
     _state["repo"] = repo
     return repo_summary(repo)
 

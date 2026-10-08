@@ -118,3 +118,46 @@ def test_remembered_graph_falls_back_when_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(routes, "DEFAULT_WORKSPACE", tmp_path)
     routes.remember_graph(tmp_path / "graphs" / "gone.json")
     assert routes.remembered_graph() is None
+
+
+# --- recent sources ------------------------------------------------------------
+
+def test_recent_sources_newest_first_without_duplicates(tmp_path, monkeypatch):
+    monkeypatch.setattr(routes, "DEFAULT_WORKSPACE", tmp_path)
+    for source in ["https://x/a.git", "https://x/b.git", "https://x/a.git"]:
+        routes.remember_source(source, source.rsplit("/", 1)[-1])
+    assert [r["source"] for r in routes.recent_sources()] == ["https://x/a.git", "https://x/b.git"]
+    for i in range(20):
+        routes.remember_source(f"https://x/{i}.git", str(i))
+    assert len(routes.recent_sources()) == routes.MAX_RECENT
+
+
+def test_recent_and_remembered_graph_share_the_state_file(tmp_path, monkeypatch, repo):
+    monkeypatch.setattr(routes, "DEFAULT_WORKSPACE", tmp_path)
+    graph_file = graph_path(tmp_path, repo.root, "abc")
+    save_graph(repo.graph, graph_file)
+    routes.remember_source("https://x/a.git", "a")
+    routes.remember_graph(graph_file)  # must not wipe the recent list
+    routes.remember_source("https://x/b.git", "b")  # must not wipe the graph
+    assert routes.remembered_graph() == graph_file
+    assert [r["name"] for r in routes.recent_sources()] == ["b", "a"]
+
+
+def test_load_adds_to_recent_and_endpoint_lists_it(tmp_path, monkeypatch):
+    monkeypatch.setattr(routes, "DEFAULT_WORKSPACE", tmp_path)
+    monkeypatch.setenv("AIEA_ALLOWED_ROOTS", str(FIXTURE.parent))
+    monkeypatch.setattr(routes, "_state", {"repo": None})  # the load below must not leak into other tests
+    client = TestClient(app)
+    assert client.get("/api/repo/recent").json() == []
+    assert client.post("/api/repo", json={"source": str(FIXTURE)}).status_code == 200
+    assert client.get("/api/repo/recent").json() == [{"source": str(FIXTURE), "name": "shop"}]
+    assert client.post("/api/repo", json={"source": "/no/such/folder"}).status_code >= 400
+    assert len(client.get("/api/repo/recent").json()) == 1  # failed loads are not remembered
+
+
+def test_unreadable_state_file_is_ignored(tmp_path, monkeypatch):
+    monkeypatch.setattr(routes, "DEFAULT_WORKSPACE", tmp_path)
+    (tmp_path / "state.json").write_text("not json", encoding="utf-8")
+    assert routes.recent_sources() == [] and routes.remembered_graph() is None
+    routes.remember_source("https://x/a.git", "a")
+    assert routes.recent_sources() == [{"source": "https://x/a.git", "name": "a"}]

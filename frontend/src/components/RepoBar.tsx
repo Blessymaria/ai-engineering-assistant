@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { RepoSummary } from '../types'
+import type { RecentRepo, RepoSummary } from '../types'
 
 interface Props {
   repo: RepoSummary | null
@@ -8,13 +8,28 @@ interface Props {
   onLoad: (source: string) => void
   historyCount: number
   onHistory: () => void
+  recent: RecentRepo[] // sources that loaded before, newest first
 }
 
-export default function RepoBar({ repo, loading, error, onLoad, historyCount, onHistory }: Props) {
+export default function RepoBar({ repo, loading, error, onLoad, historyCount, onHistory, recent }: Props) {
   const [source, setSource] = useState('')
   const [changing, setChanging] = useState(false)
+  const [open, setOpen] = useState(false) // the recent-repositories list under the input
+  const [active, setActive] = useState(-1) // highlighted entry, for the arrow keys
   const kinds = repo?.kinds ?? {}
   const showForm = changing || (!repo && !loading)
+  const filter = source.trim().toLowerCase()
+  const matches = recent.filter((r) => !filter || r.source.toLowerCase().includes(filter)
+                                       || r.name.toLowerCase().includes(filter))
+  const showList = open && !loading && matches.length > 0
+
+  const load = (value: string) => {
+    if (!value.trim()) return
+    onLoad(value.trim())
+    setSource('')
+    setOpen(false)
+    setChanging(false)
+  }
 
   return (
     <header className="repo-bar">
@@ -43,7 +58,10 @@ export default function RepoBar({ repo, loading, error, onLoad, historyCount, on
               <span className="badge">{kinds.route ?? 0} routes</span>
               <span className="badge">{repo.files} files</span>
             </span>
-            <button type="button" className="link-button" onClick={() => setChanging(true)} disabled={loading}>
+            <button type="button" className="link-button" onClick={() => {
+              setChanging(true)
+              setOpen(true)
+            }} disabled={loading}>
               Change
             </button>
             <button type="button" className="link-button" onClick={onHistory}>
@@ -57,18 +75,63 @@ export default function RepoBar({ repo, loading, error, onLoad, historyCount, on
             className="repo-form"
             onSubmit={(e) => {
               e.preventDefault()
-              if (!source.trim()) return
-              onLoad(source.trim())
-              setChanging(false)
+              load(showList && active >= 0 ? matches[active].source : source)
             }}
           >
-            <input
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              placeholder="Git URL or local folder of a Python repository"
-              disabled={loading}
-              autoFocus={changing}
-            />
+            <div className="combo">
+              <input
+                value={source}
+                onChange={(e) => {
+                  setSource(e.target.value)
+                  setOpen(true)
+                  setActive(-1)
+                }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setOpen(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setOpen(false)
+                  else if (e.key === 'ArrowDown' && matches.length) {
+                    e.preventDefault()
+                    setOpen(true)
+                    setActive((i) => (i + 1) % matches.length)
+                  } else if (e.key === 'ArrowUp' && matches.length) {
+                    e.preventDefault()
+                    setActive((i) => (i <= 0 ? matches.length - 1 : i - 1))
+                  }
+                }}
+                placeholder="Git URL or local folder of a Python repository"
+                disabled={loading}
+                autoFocus={changing}
+                role="combobox"
+                aria-expanded={showList}
+                aria-controls="recent-repos"
+                aria-autocomplete="list"
+              />
+              {showList && (
+                <ul className="recent" id="recent-repos" role="listbox">
+                  <li className="recent-label" aria-hidden="true">Recent repositories</li>
+                  {matches.map((r, i) => (
+                    <li
+                      key={r.source}
+                      role="option"
+                      aria-selected={i === active}
+                      className={`recent-item${i === active ? ' active' : ''}`}
+                      onMouseDown={(e) => e.preventDefault()} // keep focus so the click lands
+                      onMouseEnter={() => setActive(i)}
+                      onClick={() => load(r.source)}
+                    >
+                      <span className="recent-name">
+                        {r.name}
+                        {repo && i === 0 && recent[0] === r && r.name === repo.name && (
+                          <span className="recent-current">loaded</span>
+                        )}
+                      </span>
+                      <span className="recent-source">{r.source}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <button type="submit" disabled={loading || !source.trim()}>
               {loading ? 'Indexing...' : 'Load'}
             </button>
