@@ -15,6 +15,11 @@ Rules:
 
 NO_TOOL_YET = "You have not looked at the code yet. Call a tool first, then answer from its results."
 
+ANSWER_PROBLEMS = ("Your answer has these problems:\n{problems}\nRewrite the same answer: point each citation at "
+                   "the tool result that contains those lines, and correct or remove any file or folder that does not "
+                   "appear in the tool results. Every fact cites its tool result, like [E2, app/main.py:12]. "
+                   "Do not add new facts.")
+
 NEEDS_CITATIONS = ("Your answer {problem}. Rewrite the same answer so that every fact cites the tool result it came "
                    "from, like [E2, app/main.py:12], using only the E-numbers shown above. Do not add new facts.")
 

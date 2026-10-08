@@ -8,7 +8,8 @@ from typing import Callable
 from app.agent.actions import GAP_TOOL, GAP_TOOL_NAME, CapabilityGap, FinalAnswer, Invalid, ToolCall, parse_reply
 from app.agent.diagram import build_mermaid
 from app.agent.evidence import EvidenceStore, check_citations, compact, unconfirmed_note
-from app.agent.prompts import (GAP_FAILED, GAP_LIMIT, GAP_UNAVAILABLE, LIMIT_REACHED, NEEDS_CITATIONS, NO_TOOL_YET,
+from app.agent.verify import check_answer
+from app.agent.prompts import (ANSWER_PROBLEMS, GAP_FAILED, GAP_LIMIT, GAP_UNAVAILABLE, LIMIT_REACHED, NEEDS_CITATIONS, NO_TOOL_YET,
                                SYSTEM_PROMPT, TOOL_CREATED)
 from app.llm.base import LLMProvider
 from app.tools.registry import CORE_TOOLS, run_tool
@@ -160,15 +161,22 @@ class Agent:
             if isinstance(action, FinalAnswer):
                 answer = action.text or "(the model returned an empty answer)"
                 citations = check_citations(answer, store)  # measured on the model's own text
-                if not forced and store.items and not cite_checked and (not citations["total"] or citations["missing"]):
-                    # Once per question: an answer without (valid) citations goes back for a rewrite.
+                problems = check_answer(answer, store, self.repo) if store.items else []
+                if (not forced and store.items and not cite_checked
+                        and (not citations["total"] or citations["missing"] or problems)):
+                    # Once per question: an answer without valid citations, with citations that point at lines its
+                    # evidence never showed, or naming paths that do not exist goes back for one rewrite.
                     cite_checked = True
-                    problem = (f"cites evidence that does not exist: {citations['missing']}" if citations["missing"]
-                               else "cites no evidence")
-                    self._emit("invalid_action", round=rounds, error=f"answer {problem}; asked to rewrite it")
+                    if citations["missing"] or not citations["total"]:
+                        problems.insert(0, f"cites evidence that does not exist: {citations['missing']}"
+                                        if citations["missing"] else "cites no evidence")
+                    self._emit("invalid_action", round=rounds,
+                               error="answer " + "; ".join(problems) + "; asked to rewrite it")
+                    message = ANSWER_PROBLEMS.format(problems="\n".join(f"- {p}" for p in problems))
                     steps.append(_Step({"role": "assistant", "content": answer[:3000]},
-                                       {"role": "user", "content": NEEDS_CITATIONS.format(problem=problem)}))
+                                       {"role": "user", "content": message}))
                     continue
+                citations["problems"] = problems  # what is still wrong after the one rewrite, shown with the answer
                 answer += unconfirmed_note(store)
                 diagram = build_mermaid(store)
                 self._emit("answer", text=answer, citations=citations, rounds=rounds, diagram=diagram)

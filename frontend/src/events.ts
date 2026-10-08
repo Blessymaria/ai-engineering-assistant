@@ -84,11 +84,16 @@ export function applyEvent(turn: Turn, event: AgentEvent): Turn {
       return add({ kind: 'limit', status: 'warn', title: `Tool limit reached after ${d.rounds} rounds` })
     case 'answer': {
       const citations = d.citations as Citations
+      const problems = [
+        ...(citations.missing.length ? [`unknown ids: ${citations.missing.join(', ')}`] : []),
+        ...(citations.problems ?? []),
+      ]
       const next = add({
         kind: 'answer',
-        status: citations.missing.length ? 'warn' : 'ok',
-        title: `Answer - citation refs valid: ${citations.valid}/${citations.total}`,
-        detail: citations.missing.length ? `unknown ids: ${citations.missing.join(', ')}` : undefined,
+        status: problems.length ? 'warn' : 'ok',
+        title: `Answer - citation refs valid: ${citations.valid}/${citations.total}`
+          + (problems.length ? `, ${problems.length} check(s) failed` : ', locations checked'),
+        detail: problems.length ? problems.join('\n') : undefined,
       })
       return { ...next, answer: String(d.text ?? ''), citations, diagram: (d.diagram as string | null) ?? null }
     }

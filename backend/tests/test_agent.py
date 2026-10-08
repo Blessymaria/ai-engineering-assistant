@@ -214,7 +214,8 @@ def test_unconfirmed_calls_are_listed_under_the_answer(repo):
     assert "`create_order` calls `shop.db.repo.OrderRepo.save` at `shop/services/orders.py:16`: ambiguous [E1]" \
         in result.answer
     assert "`create_order` calls `notifier` at `shop/services/orders.py:17`: unresolved [E1]" in result.answer
-    assert result.citations == {"cited": ["E1"], "missing": [], "valid": 1, "total": 1}  # model text only
+    assert result.citations == {"cited": ["E1"], "missing": [], "valid": 1, "total": 1,  # model text only
+                                "problems": []}
 
 
 def test_no_note_when_all_calls_are_confirmed(repo):

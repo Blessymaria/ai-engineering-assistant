@@ -230,7 +230,7 @@ pre, code { font-family: var(--mono); font-size: 12.5px; }
 .step.invalid .step-title, .step.error .step-title { font-family: inherit; font-size: 13px; font-weight: 600; }
 .step.gap .step-title { color: var(--warn); }
 .step.create.ok .step-title { color: var(--ok); }
-.step-detail { color: var(--muted); font-size: 12.5px; margin-top: 2px; word-break: break-word; }
+.step-detail { color: var(--muted); font-size: 12.5px; margin-top: 2px; word-break: break-word; white-space: pre-line; }
 .step-time { color: #98a2b3; font-size: 11.5px; margin-top: 2px; }
 .ev {
   display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 4px; padding: 0 5px;

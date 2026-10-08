@@ -22,6 +22,7 @@ export interface Citations {
   missing: string[]
   valid: number
   total: number
+  problems?: string[] // locations or paths that failed the checks after the one rewrite
 }
 
 export type StepKind = 'tool' | 'gap' | 'create' | 'invalid' | 'limit' | 'answer' | 'error'
