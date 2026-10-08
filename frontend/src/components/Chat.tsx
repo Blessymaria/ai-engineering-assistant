@@ -38,13 +38,7 @@ export default function Chat({ repoName, suggestions, intro, introLoading, turns
             {repoName && (introLoading || intro) && (
               <div className="intro">
                 {intro ? (
-                  <>
-                    <p>{intro.text}</p>
-                    <span className="intro-label">
-                      {intro.source === 'model' ? 'Auto-generated summary, not checked against the code'
-                                                : 'Summary from the code map (model not reachable)'}
-                    </span>
-                  </>
+                  <p>{intro.text}</p>
                 ) : (
                   <p className="muted">Writing a short introduction to this repository...</p>
                 )}
