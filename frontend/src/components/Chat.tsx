@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { duration } from '../format'
 import type { RepoIntro, Turn } from '../types'
 import Markdown from './Markdown'
 import Mermaid from './Mermaid'
@@ -72,7 +73,10 @@ export default function Chat({ repoName, suggestions, intro, introLoading, turns
             className={`turn${turn.id === selected ? ' selected' : ''}`}
             onClick={() => onSelect(turn.id)}
           >
-            <div className="question">{turn.question}</div>
+            <div className="question">
+              <span className="avatar you" aria-hidden="true">You</span>
+              <span className="question-text">{turn.question}</span>
+            </div>
             {turn.savedAt && <div className="saved-label">Reopened from history · saved {turn.savedAt}</div>}
             <div className="answer">
               {turn.answer && <Markdown text={turn.answer} onCitation={(id) => onCitation(turn, id)} />}
@@ -85,11 +89,18 @@ export default function Chat({ repoName, suggestions, intro, introLoading, turns
               {turn.error && <div className="bad">Error: {turn.error}</div>}
               {turn.cancelled && <div className="muted">Stopped before an answer was written.</div>}
               {turn.running && !turn.answer && (
-                <div className="muted">
+                <div className="working">
+                  <span className="dots" aria-hidden="true"><i /><i /><i /></span>
                   {turn.stopping ? 'Stopping after the current step...' : 'Working... see the activity panel.'}
                 </div>
               )}
             </div>
+            {!turn.running && turn.answer && turn.seconds !== undefined && (
+              <div className="answer-meta">
+                Answered in {duration(turn.seconds)} · {turn.rounds} tool {turn.rounds === 1 ? 'round' : 'rounds'}
+                {turn.citations && ` · ${turn.citations.valid}/${turn.citations.total} citations valid`}
+              </div>
+            )}
           </div>
         ))}
         <div ref={endRef} />

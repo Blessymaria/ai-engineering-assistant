@@ -193,3 +193,8 @@
 - Changes: `frontend/src/components/Chat.tsx`, `index.css`, `README.md`
 - Decisions: the suggested questions used to disappear once the first question was asked. A **Suggestions** button next to the question box now opens them in a panel above it; questions already asked are left out, and picking one fills the box (it is not sent). The button is hidden while a question runs and when every suggestion has been asked.
 - Verified: frontend build and lint clean.
+
+## 2026-10-08 — UI polish
+- Changes: `frontend/src/index.css` (rewritten as one set of colour, spacing, radius and shadow tokens), `index.html` (Inter font, falls back to the system font offline), `components/{RepoBar,Chat,Activity}.tsx`, `src/format.ts`
+- Decisions: no behaviour changes. A logo mark in the header; consistent 36-40 px controls with hover and keyboard focus rings; question cards with a header and a footer (time, tool rounds, valid citations); the activity panel drawn as a timeline with status circles and a sticky header showing Running / Done / Stopped / Error; durations shown as `7m 31s`; dialogs with a blurred backdrop.
+- Verified: frontend build and lint clean; screenshots taken in headless Edge of the empty state, the History dialog, reopened answers and the suggestions panel.

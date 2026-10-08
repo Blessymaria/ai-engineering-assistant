@@ -1,3 +1,4 @@
+import { duration } from '../format'
 import type { Step, Turn } from '../types'
 
 const ICON: Record<Step['status'], string> = { running: '...', ok: '✓', error: '✗', warn: '!' }
@@ -27,9 +28,13 @@ export default function Activity({ turn, onOpen }: Props) {
       </aside>
     )
   }
+  const status = turn.running ? 'Running' : turn.error ? 'Error' : turn.cancelled ? 'Stopped' : 'Done'
   return (
     <aside className="activity">
-      <h2>Agent activity</h2>
+      <h2>
+        Agent activity
+        <span className={`status-pill ${status.toLowerCase()}`}>{status}</span>
+      </h2>
       <ol className="steps">
         {turn.steps.map((step) => {
           const clickable = Boolean(step.evidenceId || step.code || step.detail)
@@ -59,8 +64,8 @@ export default function Activity({ turn, onOpen }: Props) {
         )}
       </ol>
       {!turn.running && turn.seconds !== undefined && (
-        <p className="muted">
-          Finished in {turn.seconds}s, {turn.rounds} tool rounds. Click a step for its full result.
+        <p className="activity-summary">
+          Finished in {duration(turn.seconds)} · {turn.rounds} tool rounds. Click a step for its full result.
         </p>
       )}
     </aside>

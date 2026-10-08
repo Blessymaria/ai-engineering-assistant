@@ -19,8 +19,17 @@ export default function RepoBar({ repo, loading, error, onLoad, historyCount, on
   return (
     <header className="repo-bar">
       <div className="brand-block">
-        <div className="brand">AI Engineering Assistant</div>
-        <div className="tagline">Ask questions about a Python codebase it has never seen</div>
+        <svg className="logo" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="var(--accent)" />
+          <circle cx="10" cy="11" r="3" fill="#fff" />
+          <circle cx="22" cy="11" r="3" fill="#fff" opacity="0.75" />
+          <circle cx="16" cy="22" r="3" fill="#fff" />
+          <path d="M10 11 16 22 22 11" stroke="#fff" strokeWidth="1.6" fill="none" opacity="0.8" />
+        </svg>
+        <div>
+          <div className="brand">AI Engineering Assistant</div>
+          <div className="tagline">Ask questions about a Python codebase it has never seen</div>
+        </div>
       </div>
 
       <div className="repo-side">
