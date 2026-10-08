@@ -15,6 +15,7 @@ Eight questions on [fastapi-realworld-example-app](https://github.com/nsidnev/fa
 | Round 4 | assistant @ `c3bae7c` (runtime-data prompt rule, stop button, path limits), Q4 ×3, run 2026-09-30 |
 | Round 5 | assistant @ `bcdbf97` (citation check, unconfirmed-calls list, prompt tightening), all questions, Q4 and Q8 ×3, run 2026-09-30 |
 | Round 6 | assistant @ `edf38a3` (repository gap vs runtime state in the prompt), Q8 ×3 and Q4 ×3, run 2026-09-30 |
+| Round 7 | assistant @ `cfb397e` (reliability fixes: `ctx.git_log_lines`, tool answer checks, typed-call resolution, location and path checks, tool reuse), all questions, Q8 ×3 and Q4 ×3 more, run 2026-10-08 on Ollama **0.35.1**; Q1 run again @ `ac5aaa2` after a bug fix the round exposed |
 
 Each round was recorded exactly as it ran and committed before any fix (`ad73a2d` round 1, `5dfbb7b` round 2). Fixes between rounds were for bugs the evaluation exposed; nothing was tuned to a specific question's wording.
 
@@ -73,6 +74,39 @@ Round 5 added, in code: an answer with no (valid) citations goes back once for a
 
 **Where this leaves things:** the safety measures held in every run after they were added (no invented value in the 10 runtime-question runs since round 3; since round 5 every answer that had evidence cites it; invalid paths refused). What did not improve with more prompt changes is how well the small model writes and uses tools, and whether it frames runtime questions correctly; each prompt change traded one behaviour for another. These are recorded as limitations rather than tuned further.
 
+### Round 7: reliability fixes (2026-10-08)
+
+Changes since round 6, all in code (no prompt tuning for specific questions; the one prompt change describes the new `ctx` method):
+
+1. `ctx.git_log_lines(path, start, end)`: the history of a line range (`git log -L`), so a tool gets one function's history in one call instead of combining blame lines or (wrongly) using the file's log.
+2. Tool test checks: a tool whose output reports commits for a named function is rejected if those commits did not change the function's lines (checked with `git log -L`); a tool for a gap that names a function may not require a file path the agent does not have.
+3. The call resolver resolves calls on parameters annotated with a repository class and on attributes set from a class in `__init__`; ambiguous calls in the demo graph went from 103 to 76 (itsdangerous 212 to 157), and `query_graph` now follows POST /articles into the repository (unit test `test_demo_flow_follows_the_injected_repository`).
+4. Answer checks: every cited `file:line` must exist and lie inside its evidence; every file or folder named must exist; a failing answer gets one rewrite, and what remains is shown with it.
+5. Validated tools are reused for later questions on the same repository and commit (not in the evaluation runner, which builds a fresh factory per run, so tool creation is measured every time).
+
+| # | Rounds 5-6 (baseline) | Round 7 | Notes |
+| --- | --- | --- | --- |
+| Q1 Structure | ⚠️ invents `app/db/models/` | 🟡 correct packages and subpackages, nothing invented; `tests/` not mentioned | Run again after the fix below: the model **wrote `app/db/models/` again** in its first draft; the path check caught it and the one rewrite removed it |
+| Q2 Nonexistent symbol | ✅ | ✅ | |
+| Q3 Flow | 🟡 | 🟡 same route-level flow, every call line cited | **Not improved**: the model asked `query_graph` for the handler's *callers* instead of its callees, so the better graph was never used; no diagram |
+| Q4 Runtime-only (×4) | ⚠️ 0/6 invented; 0/6 used the prescribed sentence | ⚠️ 0/4 invented; 1/4 used the prescribed sentence and 1/4 said it depends on the live database; 2/4 still look for a counting function | Nothing changed for this; run-to-run variation |
+| Q5 Dependencies | ✅ | ✅ all 6 modules | |
+| Q6 Implementation | ⚠️ | ⚠️ creation correct and cited; says the token is checked in `app/api/routes/users.py` (where the dependency is used) instead of `app/api/dependencies/authentication.py` | |
+| Q7 Documentation | 🟡 | 🟡 `pytest`, `tests/` folder; omits `DATABASE_URL` | |
+| Q8 Gap: git history (×3) | 3/3 gap, 3/3 tool, **1/3 correct** (round 6) | 3/3 gap, 3/3 tool, **3/3 correct**: Nik, 2020-05-01, `155ac54` | All three first attempts required `file_path` / `repository_path` and were rejected by the new path rule; the retries take the function name (2 call `git_log_lines`, 1 blames the function's lines). Each answer's evidence shows `155ac54`, checked by hand. The commit check did not need to fire |
+
+| Summary | Round 5 | Round 7 |
+| --- | --- | --- |
+| Q1-Q7 correct or mostly correct | 4/7 | 5/7 (Q1 up from ⚠️ to 🟡; Q3, Q4, Q6 unchanged) |
+| Q8 correct | 0/3 (round 6: 1/3) | **3/3** |
+| Answers with valid citations | all | all 14 |
+| Cited lines outside their evidence | not checked | 0 (now checked by code) |
+| Invented paths in the final answer | Q1, every round | 0 (one caught and rewritten) |
+| Invented runtime values | 0 | 0 |
+| Time per question | 1-4 min (Q8 with tool creation 3-6 min) | 1.3-8.5 min; Q8 4-6 min, of which 3-3.5 min is tool creation |
+
+**A bug the round exposed in the new path check:** Q1's first round-7 answer named real subfolders relative to their parent (`app/api/` "contains `dependencies/`, `errors/` and `routes/`"). The check only matched shortened names against files, so it reported six real folders as missing, cost one needless rewrite and showed a false "6 checks failed". Fixed in `ac5aaa2` (shortened names may match folders too; a wrong full path like `app/db/models/` still matches nothing), with a regression test. Re-checking every recorded answer from rounds 1-7, the check now flags only the three real `app/db/models/` inventions (rounds 1, 2 and 5). Q1 was then run once more (`results/round7/q1-after-fix/`).
+
 ### Unseen repositories (generality check, 2026-10-01)
 
 Everything above uses one demo repository, so the same assistant was run on two repositories it had never seen, chosen to differ from the demo: a library with no web routes and a Flask web app. Ground truth was checked in their source and git history; assistant @ `94e0720`.
@@ -101,11 +135,11 @@ Everything above uses one demo repository, so the same assistant was run on two 
 
 ## Remaining weaknesses (not fixed)
 
-- **Generated tool logic varies:** in round 2, 2 of 3 Q8 tools used the file's last commit instead of blaming the function's lines, and got the wrong answer, even though `git_blame` and the function's line range were available. The pipeline validates that a tool is safe, runs, and reads repository data; it cannot validate that the tool computes the right thing.
-- **An invented folder name** in the structure answer (Q1, every round). Citations were missing in rounds 1-2; the round 5 citation check fixed that.
-- **Answers stop short:** Q3 did not follow the call into the repository. When the agent does use `query_graph` on calls, ambiguous calls are now listed under the answer by code (round 5); when it only reads the file, neither that list nor the diagram appears.
+- **Generated tool logic varies:** in round 2, 2 of 3 Q8 tools used the file's last commit instead of blaming the function's lines, and got the wrong answer. Since round 7 that specific mistake is caught (commits that did not change the function are rejected) and `git_log_lines` makes the right approach one call; Q8 was correct 3/3. For other kinds of tools the pipeline still validates that a tool is safe, runs and reads repository data, not that it computes the right thing.
+- **An invented folder name** in the structure answer (Q1, rounds 1-5). Since round 7 the answer check catches it and the one rewrite removes it; the model still writes it in its first draft.
+- **Answers stop short:** Q3 did not follow the call into the repository. Since round 7 the graph does follow it (typed-call resolution), but in that run the model asked for callers instead of callees, so the answer did not improve. When the agent does use `query_graph` on calls, ambiguous calls are now listed under the answer by code (round 5); when it only reads the file, neither that list nor the diagram appears.
 - **Runtime-only questions:** since round 3 no run invented a value (10 runs), but no run used the prescribed "cannot be known from the source code" framing; the model looks for a counting function instead. It also misread search hits as SQL it had found (rounds 3 and 5).
-- **Tool use after creation:** in round 6, 2 of 3 created tools needed a file path and the agent passed a word from the question (`articles`) instead of looking the path up.
+- **Tool use after creation:** in round 6, 2 of 3 created tools needed a file path and the agent passed a word from the question (`articles`) instead of looking the path up. Fixed in round 7: such tools are rejected at creation and rewritten to take the function name (3/3 first attempts rejected for this, 3/3 retries worked).
 - **Prompt changes trade behaviours:** round 5's runtime rule stopped the git-history gap from being reported at all until round 6 separated the cases. Further prompt tuning was stopped for this reason.
 - **Speed:** 1-5 minutes per question on this CPU, and the laptop occasionally slowed a single call to ~30 minutes when unattended.
 
@@ -122,6 +156,9 @@ Every tool the model wrote during the evaluation is kept in [results/generated-t
 | `20260930-230941-git_history_for_symbol` | Round 6, Q8 run 1 | Accepted; file-level `git_log`; called with a non-existent path, refused |
 | `20260930-231353-get_function_history` | Round 6, Q8 run 2 | Accepted; blames the function's lines, newest date wins; correct answer |
 | `20260930-231924-get_function_git_history` | Round 6, Q8 run 3 | Accepted; file-level `git_log`; called with a non-existent path, refused |
+| `20261008-153840-get_function_history` | Round 7, Q8 run 1 | Attempt 1 rejected (required `repository_path`); attempt 2 blames the function's lines; correct answer |
+| `20261008-154420-get_function_git_history` | Round 7, Q8 run 2 | Attempt 1 rejected (required `file_path`); attempt 2 uses `git_log_lines`; correct answer |
+| `20261008-154916-git_history_for_symbol` | Round 7, Q8 run 3 | Attempt 1 rejected (required `file_path`); attempt 2 uses `git_log_lines`; correct answer |
 
 ## Cases covered elsewhere
 
