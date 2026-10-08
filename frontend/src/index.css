@@ -152,3 +152,6 @@ button.secondary { background: #fff; color: var(--accent); }
 /* Repository introduction, above the suggested questions */
 .intro { margin: 0 0 20px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; }
 .empty .intro p { margin: 0; }
+
+/* Suggestions after the first question, opened from the button next to the input */
+.more-suggestions { display: grid; gap: 6px; padding: 10px 16px; border-top: 1px solid var(--border); background: var(--bg); max-height: 40vh; overflow: auto; }

@@ -23,6 +23,10 @@ export default function Chat({ repoName, suggestions, intro, introLoading, turns
   const endRef = useRef<HTMLDivElement>(null)
   const running = turns.find((t) => t.running)
   const busy = Boolean(running)
+  const [showMore, setShowMore] = useState(false)
+  // After the first question, suggestions stay one click away; ones already asked are left out
+  const asked = new Set(turns.map((t) => t.question))
+  const remaining = canAsk && turns.length > 0 && !busy ? suggestions.filter((s) => !asked.has(s)) : []
 
   useEffect(() => {
     // Braces matter: newer browsers return a Promise from scrollIntoView, and an effect must not return one
@@ -90,6 +94,18 @@ export default function Chat({ repoName, suggestions, intro, introLoading, turns
         ))}
         <div ref={endRef} />
       </div>
+      {showMore && remaining.length > 0 && (
+        <div className="more-suggestions">
+          {remaining.map((example) => (
+            <button key={example} type="button" className="example" onClick={() => {
+              setQuestion(example)
+              setShowMore(false)
+            }}>
+              {example}
+            </button>
+          ))}
+        </div>
+      )}
       <form
         className="ask"
         onSubmit={(e) => {
@@ -97,8 +113,15 @@ export default function Chat({ repoName, suggestions, intro, introLoading, turns
           if (!question.trim() || busy || !canAsk) return
           onAsk(question.trim())
           setQuestion('')
+          setShowMore(false)
         }}
       >
+        {turns.length > 0 && remaining.length > 0 && (
+          <button type="button" className="secondary" aria-expanded={showMore} disabled={busy || !canAsk}
+                  onClick={() => setShowMore((open) => !open)}>
+            Suggestions
+          </button>
+        )}
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}

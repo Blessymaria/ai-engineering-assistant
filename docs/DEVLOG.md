@@ -188,3 +188,8 @@
   - The UI fetches it after the repository appears, so loading is not slower; it shows only in the empty chat, before the first question.
 - Verified: `pytest` 164 passed, 1 skipped; frontend build and lint clean. Live on the four indexed repositories, 17-22 s each (7.7 s with the model already loaded, then instant from the cache). Demo: "...a full-featured web service with routes for managing users, articles, and tags. It is built using FastAPI, Starlette, Pydantic, and interacts with a PostgreSQL database via asyncpg and SQLAlchemy." (SQLAlchemy is only used by the Alembic migrations: the kind of imprecision the label warns about.)
 - Follow-up: the "Auto-generated summary, not checked against the code" label was removed at the user's request; the intro now shows as plain text. The README limitation still notes that it is not cited.
+
+## 2026-10-08 — Suggestions after the first question
+- Changes: `frontend/src/components/Chat.tsx`, `index.css`, `README.md`
+- Decisions: the suggested questions used to disappear once the first question was asked. A **Suggestions** button next to the question box now opens them in a panel above it; questions already asked are left out, and picking one fills the box (it is not sent). The button is hidden while a question runs and when every suggestion has been asked.
+- Verified: frontend build and lint clean.
