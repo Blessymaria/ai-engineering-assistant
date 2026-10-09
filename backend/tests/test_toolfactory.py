@@ -10,7 +10,7 @@ from app.agent.loop import Agent
 from app.llm.base import LLMReply, ToolCallRequest
 from app.runner.context import ToolContext
 from app.runner.docker import DockerRunner, RunResult
-from app.toolfactory.factory import ToolFactory, normalise_schema, wrap_body
+from app.toolfactory.factory import GeneratedTool, ToolFactory, normalise_schema, wrap_body
 from app.toolfactory.static_check import static_check
 from app.tools.repo import LoadedRepo, ToolError
 
@@ -318,6 +318,47 @@ def test_factory_rejects_path_inputs_when_the_agent_only_knows_a_function_name(h
     with_path = CapabilityGap("git history of a function", "no tool reads git", "create in svc.py")
     ok = ToolFactory(FakeLLM([needs_path]), FakeRunner([ran({"n": 1})]), ctx, tmp_path).create(with_path)
     assert ok.tool is not None
+
+
+def _tool(ctx, parameters, output):
+    return GeneratedTool("function_history", "history", parameters, "def run(args, ctx): pass", {}, {},
+                         FakeRunner([ran(output)]), ctx)
+
+
+NAME_PATH = {"type": "object", "properties": {"symbol_name": {"type": "string"}, "file_path": {"type": "string"}},
+             "required": ["symbol_name"]}
+
+
+def test_backend_states_the_newest_commit_for_per_line_history(history_repo):
+    """Found after round 7: correct per-line blame, but the model picked an older commit as the last change."""
+    ctx = ToolContext(history_repo)
+    blame = ctx.handle("git_blame", {"path": "svc.py", "start": 5, "end": 6})  # line 5 Ada (older) comes first
+    assert [b["author"] for b in blame] == ["Ada", "Grace"]
+    result = _tool(ctx, NAME_PATH, {"history": blame}).run({"symbol_name": "create", "file_path": "svc.py"})
+    assert list(result)[0] == "latest_change_verified"  # first thing the model reads
+    latest = result["latest_change_verified"]
+    assert (latest["author"], latest["subject"], latest["lines"]) == ("Grace", "change create", "svc.py:5-6")
+    assert result["history"] == blame  # the tool's own output is kept as it was
+
+
+def test_no_verified_change_when_not_about_one_functions_commits(history_repo):
+    ctx = ToolContext(history_repo)
+    assert "latest_change_verified" not in _tool(ctx, NAME_PATH, {"lines": 2}).run({"symbol_name": "create"})
+    unknown = _tool(ctx, NAME_PATH, {"history": ctx.handle("git_log", {"path": "svc.py"})})
+    assert "latest_change_verified" not in unknown.run({"symbol_name": "no_such_function"})
+
+
+def test_demo_get_user_by_username_latest_change_is_the_dependabot_commit(tmp_path_factory):
+    """The exact round-7 screenshot case: lines 19-20 were last changed by dependabot (32916db, 2020-09-02)."""
+    demo = Path(__file__).parents[2] / "workspace" / "fastapi-realworld-example-app"
+    if not (demo / ".git").exists():
+        pytest.skip("demo repository not cloned")
+    ctx = ToolContext(LoadedRepo.build(str(demo), tmp_path_factory.mktemp("ws")))
+    path = "app/db/repositories/users.py"
+    blame = ctx.handle("git_blame", {"path": path, "start": 17, "end": 27})
+    result = _tool(ctx, NAME_PATH, {"history": blame}).run({"symbol_name": "get_user_by_username", "file_path": path})
+    latest = result["latest_change_verified"]
+    assert latest["commit"].startswith("32916db") and latest["date"].startswith("2020-09-02")
 
 
 def test_agent_uses_created_tool(repo, tmp_path):

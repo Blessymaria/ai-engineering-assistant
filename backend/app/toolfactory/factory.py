@@ -16,7 +16,7 @@ from app.agent.actions import GAP_TOOL_NAME, CapabilityGap
 from app.llm.base import LLMProvider
 from app.runner.context import ToolContext
 from app.runner.docker import DockerRunner
-from app.toolfactory.checks import history_errors, path_input_errors
+from app.toolfactory.checks import history_errors, latest_change, path_input_errors
 from app.toolfactory.static_check import ALLOWED_IMPORTS, static_check
 from app.tools.registry import CORE_TOOLS, validate_args
 from app.tools.repo import ToolError
@@ -106,8 +106,10 @@ class GeneratedTool:
         outcome = self.runner.run(self.source, args, self.ctx.handle)
         if not outcome.ok:
             raise ToolError(f"{self.name} failed: {outcome.error}")
-        result = outcome.result
-        return result if isinstance(result, dict) else {"result": result}
+        result = outcome.result if isinstance(outcome.result, dict) else {"result": outcome.result}
+        latest = latest_change(self.ctx, args, result)
+        # first key, so it is what the model reads first in the JSON it is shown
+        return {"latest_change_verified": latest, **result} if latest else result
 
     def schema(self) -> dict:
         return {"type": "function",

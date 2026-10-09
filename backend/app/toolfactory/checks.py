@@ -56,6 +56,36 @@ def history_errors(ctx: ToolContext, example: dict, result: object, ctx_calls: l
             f"Use ctx.git_log_lines(path, line, end) on the function's own lines instead of ctx.git_log(path)."]
 
 
+def latest_change(ctx: ToolContext, args: dict, result: object) -> dict | None:
+    """When a tool reports commits for one named function, the newest commit that changed its lines.
+
+    Found after round 7: a tool returned correct per-line blame for get_user_by_username, and the model picked
+    an older commit as "the last change". Ordering commits is deterministic, so the backend does it and puts
+    the answer at the top of the result instead of leaving it to the model.
+    """
+    values = [v for v in args.values() if isinstance(v, str)]
+    functions = _named_functions(ctx, values)
+    on_path = [f for f in functions if f["path"] in values]
+    functions = on_path or functions
+    if len(functions) != 1:
+        return None  # not about one function, or the name is ambiguous across files
+    try:
+        known = ctx.known_commits()
+    except ToolError:
+        return None
+    if not any(any(full.startswith(h) for full in known) for h in HEX_RE.findall(json.dumps(result))):
+        return None  # the output is not about commits
+    fn = functions[0]
+    try:
+        history = ctx.git_log_lines(fn["path"], fn["line"], fn["end"], limit=1)
+    except ToolError:
+        return None
+    if not history:
+        return None
+    return {"function": fn["name"], "lines": f"{fn['path']}:{fn['line']}-{fn['end']}", **history[0],
+            "how": "newest commit that changed these lines (git log -L), computed by the backend"}
+
+
 def path_input_errors(ctx: ToolContext, gap: CapabilityGap | None, parameters: dict) -> list[str]:
     """A gap about a named function must not get a tool that needs the caller to know the file path."""
     if gap is None:
