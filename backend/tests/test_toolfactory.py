@@ -341,6 +341,27 @@ def test_backend_states_the_newest_commit_for_per_line_history(history_repo):
     assert result["history"] == blame  # the tool's own output is kept as it was
 
 
+def test_tool_returning_a_list_from_ctx_is_accepted(history_repo, tmp_path):
+    """Found after round 7: `return ctx.git_log_lines(...)` returned the right commits as a list and was rejected
+    twice for not being a dict, so the gap went unanswered."""
+    ctx = ToolContext(history_repo)
+    commits = ctx.handle("git_log_lines", {"path": "svc.py", "start": 5, "end": 6})
+    gap = CapabilityGap("git history of a function", "no tool reads git", "when did create change")
+    calls = [{"method": "list_nodes", "args": {}}, {"method": "git_log_lines", "args": {}}]
+    runner = FakeRunner([RunResult(True, commits, ctx_calls=calls), RunResult(True, commits, ctx_calls=calls)])
+    result = ToolFactory(FakeLLM([_history_spec()]), runner, ctx, tmp_path).create(gap)
+    assert result.tool is not None and len(result.attempts) == 1
+    assert result.tool.test_output == {"results": commits}
+    at_runtime = result.tool.run({"name": "create"})
+    assert at_runtime["results"] == commits and at_runtime["latest_change_verified"]["author"] == "Grace"
+    # the commit check still applies to a wrapped list: the file's newest commit (Max) did not touch create()
+    wrong = [ctx.handle("git_log", {"path": "svc.py"})[0]]
+    bad = ToolFactory(FakeLLM([_history_spec(), _history_spec()]),
+                      FakeRunner([RunResult(True, wrong, ctx_calls=calls), RunResult(True, wrong, ctx_calls=calls)]),
+                      ctx, tmp_path).create(gap)
+    assert bad.tool is None and "did not change the lines of create" in bad.errors[0]
+
+
 def test_no_verified_change_when_not_about_one_functions_commits(history_repo):
     ctx = ToolContext(history_repo)
     assert "latest_change_verified" not in _tool(ctx, NAME_PATH, {"lines": 2}).run({"symbol_name": "create"})

@@ -106,7 +106,7 @@ class GeneratedTool:
         outcome = self.runner.run(self.source, args, self.ctx.handle)
         if not outcome.ok:
             raise ToolError(f"{self.name} failed: {outcome.error}")
-        result = outcome.result if isinstance(outcome.result, dict) else {"result": outcome.result}
+        result = as_result(outcome.result) or {"result": outcome.result}
         latest = latest_change(self.ctx, args, result)
         # first key, so it is what the model reads first in the JSON it is shown
         return {"latest_change_verified": latest, **result} if latest else result
@@ -126,6 +126,16 @@ class CreationResult:
     @property
     def errors(self) -> list[str]:
         return self.attempts[-1]["errors"] if self.attempts else ["no attempt made"]
+
+
+def as_result(value: object) -> dict | None:
+    """A tool's return value as a non-empty dict: a list (e.g. straight from ctx.git_log_lines) is wrapped as
+    {"results": [...]}. Found after round 7: a correct tool returning that list was rejected twice."""
+    if isinstance(value, dict) and value:
+        return value
+    if isinstance(value, list) and value:
+        return {"results": value}
+    return None
 
 
 def wrap_body(code: str) -> str:
@@ -196,9 +206,12 @@ class ToolFactory:
                     ctx_calls=outcome.ctx_calls)
         if not outcome.ok:
             return None, [f"test run on example_input failed: {outcome.error}"], test
-        if not isinstance(outcome.result, dict) or not outcome.result:
-            return None, [f"run() must return a non-empty dict, got {type(outcome.result).__name__}: "
-                          f"{json.dumps(outcome.result)[:200]}"], test
+        result = as_result(outcome.result)
+        if result is None:
+            return None, [f"run() must return a non-empty dict (or list), got {type(outcome.result).__name__}: "
+                          f"{json.dumps(outcome.result)[:200]}. Return a dict such as "
+                          '{"results": [...]} built from what ctx returned.'], test
+        outcome.result = result
         if not outcome.ctx_calls:
             # Found in evaluation: a tool returned a hard-coded "count": 12345 and passed every other check.
             return None, ["the test run made no ctx calls, so its output cannot come from the repository. "
