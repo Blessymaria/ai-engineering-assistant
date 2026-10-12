@@ -229,3 +229,9 @@
 - Found in manual use: asked when `create_article` last changed, the model wrote a correct tool (`list_nodes`, then `return ctx.git_log_lines(...)`) whose test run returned the right commits (`155ac54`, Nik, 2020-05-01), but validation rejected it twice because it returned a list, not a dict; the error did not say how to fix it, so the retry repeated it and the gap went unanswered (the agent answered honestly that it could not tell). The runtime already wrapped non-dict results, so validation and runtime disagreed.
 - Decision: one rule for both: a non-empty dict is kept, a non-empty list is wrapped as `{"results": [...]}`, anything else is rejected with a message that says what to return. All other checks (ctx reads, commit check, verified latest change) apply to the wrapped result.
 - Verified: `pytest` 192 passed, 1 skipped (new regression test with exactly this tool, including that the commit check still rejects wrong commits in a list). The exact rejected tool from the audit record, re-validated in the real container on the demo repository: accepted, `latest_change_verified` = `155ac54`, Nik, 2020-05-01, lines 34-63.
+
+## 2026-10-12 — "locations checked" only for answers that were checked
+- Changes: `frontend/src/events.ts`
+- Found while writing the project report: an answer saved on 7 October, before the location and path checks existed, showed "locations checked" when replayed from History, because a missing `problems` field was treated as "no problems".
+- Fix: the label appears only when the saved answer recorded a check result (`citations.problems` is present); older answers show only their citation count. In `workspace/history.db`, answers 1-7 (7-8 October) have no check result and answers 8-20 (9 October) do.
+- Verified: frontend build and lint clean.

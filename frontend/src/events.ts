@@ -88,11 +88,13 @@ export function applyEvent(turn: Turn, event: AgentEvent): Turn {
         ...(citations.missing.length ? [`unknown ids: ${citations.missing.join(', ')}`] : []),
         ...(citations.problems ?? []),
       ]
+      // Answers saved before the location checks existed have no `problems` field: claim nothing for them
+      const checked = Array.isArray(citations.problems)
+      const outcome = problems.length ? `, ${problems.length} check(s) failed` : checked ? ', locations checked' : ''
       const next = add({
         kind: 'answer',
         status: problems.length ? 'warn' : 'ok',
-        title: `Answer - citation refs valid: ${citations.valid}/${citations.total}`
-          + (problems.length ? `, ${problems.length} check(s) failed` : ', locations checked'),
+        title: `Answer - citation refs valid: ${citations.valid}/${citations.total}${outcome}`,
         detail: problems.length ? problems.join('\n') : undefined,
       })
       return { ...next, answer: String(d.text ?? ''), citations, diagram: (d.diagram as string | null) ?? null }
