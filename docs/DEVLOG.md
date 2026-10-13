@@ -235,3 +235,8 @@
 - Found while writing the project report: an answer saved on 7 October, before the location and path checks existed, showed "locations checked" when replayed from History, because a missing `problems` field was treated as "no problems".
 - Fix: the label appears only when the saved answer recorded a check result (`citations.problems` is present); older answers show only their citation count. In `workspace/history.db`, answers 1-7 (7-8 October) have no check result and answers 8-20 (9 October) do.
 - Verified: frontend build and lint clean.
+
+## 2026-10-13 — Claude Code skills for this project
+- Changes: `.claude/skills/` (new): `assess-before-building`, `start-app`, `run-eval`, `fix-from-failure`, `project-report`, `ui-screenshots` (with `scripts/shot.mjs`)
+- Decisions: the skills record the repeatable workflows of this project and the way it was run: assess a request and agree on what is feasible and necessary before building; give a time estimate before long runs; approve each push; report failures and regressions plainly, including our own; Blessy starts servers for demos and takes the screenshots for documents. Hard rules stay in `CLAUDE.md`; skills hold procedures (commands, pitfalls found the hard way, what "done" means).
+- Verified: front matter present in every `SKILL.md`; `shot.mjs` is the script used for the UI checks on 8-9 October.
