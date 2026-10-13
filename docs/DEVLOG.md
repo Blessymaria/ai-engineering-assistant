@@ -240,3 +240,8 @@
 - Changes: `.claude/skills/` (new): `assess-before-building`, `start-app`, `run-eval`, `fix-from-failure`, `project-report`, `ui-screenshots` (with `scripts/shot.mjs`)
 - Decisions: the skills record the repeatable workflows of this project and the way it was run: assess a request and agree on what is feasible and necessary before building; give a time estimate before long runs; approve each push; report failures and regressions plainly, including our own; Blessy starts servers for demos and takes the screenshots for documents. Hard rules stay in `CLAUDE.md`; skills hold procedures (commands, pitfalls found the hard way, what "done" means).
 - Verified: front matter present in every `SKILL.md`; `shot.mjs` is the script used for the UI checks on 8-9 October.
+
+## 2026-10-13 — Phase skills covering the whole development
+- Changes: `.claude/skills/phase-1-setup` to `phase-7-evaluation-and-docs` (new), `README.md` (development notes)
+- Decisions: the mentor prefers a project to carry a skills file from the start. This project was run from `CLAUDE.md` and `docs/PLAN.md` instead, so the same instructions are now packaged as skills, one per phase, each with that phase's rules from `CLAUDE.md`, the decisions and lessons recorded in this log, and what "done" means. The repository history is left as it happened: the skills are dated today, here and in the README, rather than backdated into earlier commits. Rules are duplicated deliberately (`CLAUDE.md` loads every session; a skill loads when its task matches), and each skill names `CLAUDE.md` and `docs/PLAN.md` as the source of truth if they ever differ.
+- Verified: every `SKILL.md` has `name` and `description` front matter; facts checked against `CLAUDE.md`, this log, `eval/RESULTS.md` and the code.
